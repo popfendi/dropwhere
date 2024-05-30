@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import { Test, console } from "forge-std/Test.sol";
 import { DropManager } from "../src/DropManager.sol";
 
-contract CounterTest is Test {
+contract ManagerTest is Test {
 	DropManager dm;
 
 	function setUp() public {
@@ -16,7 +16,7 @@ contract CounterTest is Test {
 		int256 lon = int256(21.17403 * 1000000); // 2174030
 
 		bytes32 expectedTileKey = keccak256(
-			abi.encodePacked(int256(-1200), int256(211))
+			abi.encodePacked(int256(-1201), int256(211))
 		);
 
 		bytes32 actualTileKey = dm.getTileKey(lat, lon);

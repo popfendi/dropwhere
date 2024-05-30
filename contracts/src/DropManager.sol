@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import { Verifier } from "./zk-verifier/verifier.sol";
+
 //import "forge-std/console.sol"; //REMOVE AFTER TESTING
 
 contract DropManager {
