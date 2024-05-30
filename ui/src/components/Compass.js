@@ -87,7 +87,6 @@ const Compass = () => {
 
   const prizeTextStyle = (direction) => ({
     transform: `rotate(${direction}deg)`,
-    transformOrigin: "left center", // Rotate text so bottom faces the circle
   });
 
   return (
