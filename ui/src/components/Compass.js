@@ -5,7 +5,7 @@ import useDeviceOrientation from "../hooks/useDeviceOrientation";
 import useGeolocation from "../hooks/useGeolocation";
 
 const Compass = () => {
-  const { alpha } = useDeviceOrientation();
+  const { alpha, dir } = useDeviceOrientation();
   const { position, error } = useGeolocation();
   const [deltas, setDeltas] = useState([]);
 
@@ -89,17 +89,17 @@ const Compass = () => {
     transform: `rotate(${direction}deg)`,
   });
 
-  return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        alignItems: "center",
-        height: "100vh",
-      }}
-    >
-      <div style={{ rotate: "-180deg" }}>
+  if (alpha) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+        }}
+      >
         <div style={compassStyle}>
           <div
             style={{
@@ -117,10 +117,11 @@ const Compass = () => {
             </div>
           ))}
         </div>
+        {error && <p>{error}</p>}
+        <p>{dir}</p>
       </div>
-      {error && <p>{error}</p>}
-    </div>
-  );
+    );
+  }
 };
 
 export default Compass;
