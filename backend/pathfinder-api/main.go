@@ -25,6 +25,8 @@ type Prize struct {
     Name            string      `json:"name"`
     Symbol          string      `json:"symbol"`
     Amount          *big.Int    `json:"amount"`
+    Expires         int64       `json:"expires"`
+    Active          bool        `json:"active"`
 }
 
 func NormalizeAddress(address string) string {
