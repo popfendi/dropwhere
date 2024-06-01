@@ -16,12 +16,10 @@ contract VerifierTest is Test {
 	) public pure returns (uint256[33] memory) {
 		uint256[33] memory result;
 
-		// Copy bytes32 hash into the first 32 indices of the array
 		for (uint256 i = 0; i < 32; i++) {
 			result[i] = uint256(uint8(hash[i]));
 		}
 
-		// The 33rd element can be set as needed, here we set it to 0 for example
 		result[32] = 0;
 
 		return result;
@@ -30,8 +28,6 @@ contract VerifierTest is Test {
 	function testVerifyTxPass() public {
 		bytes32 hashed = 0x7e7dbfd841aa32343b03b0e4ec481e6c9bbb71dcafdb49c1a191df2ca09da5ec;
 
-		// Step 3: Generate zk-SNARK proof off-chain and supply it here
-		// These values should be replaced with the actual proof values generated off-chain
 		uint[2] memory a = [
 			uint256(
 				0x28d2286dffe7907523d6c4fd577bd655a7f3429eae22d667a92e897e397a6e58
@@ -72,25 +68,20 @@ contract VerifierTest is Test {
 			0x0000000000000000000000000000000000000000000000000000000000000000
 		);
 
-		// Create the proof structure
 		Verifier.Proof memory proof = Verifier.Proof({
 			a: Pairing.G1Point(a[0], a[1]),
 			b: Pairing.G2Point([b[0][0], b[0][1]], [b[1][0], b[1][1]]),
 			c: Pairing.G1Point(c[0], c[1])
 		});
 
-		// Step 4: Call verifyTx function
 		bool result = verifier.verifyTx(proof, input);
 
-		// Step 5: Assert the result is true (proof is valid)
 		assertTrue(result);
 	}
 
 	function testVerifyTxFail() public {
 		bytes32 hashed = 0x7e7dbfd841aa32343b03b0e4ec481e6c9bbb71dcafdb49c1a191df2ca09da5ec;
 
-		// Step 3: Generate zk-SNARK proof off-chain and supply it here
-		// These values should be replaced with the actual proof values generated off-chain
 		uint[2] memory a = [
 			uint256(
 				0x060e44ba1b13af5552d78d8884f632e9e5d22405e1e0330980d1f57be26fab86
@@ -131,17 +122,14 @@ contract VerifierTest is Test {
 			0x0000000000000000000000000000000000000000000000000000000000000000
 		);
 
-		// Create the proof structure
 		Verifier.Proof memory proof = Verifier.Proof({
 			a: Pairing.G1Point(a[0], a[1]),
 			b: Pairing.G2Point([b[0][0], b[0][1]], [b[1][0], b[1][1]]),
 			c: Pairing.G1Point(c[0], c[1])
 		});
 
-		// Step 4: Call verifyTx function
 		bool result = verifier.verifyTx(proof, input);
 
-		// Step 5: Assert the result is true (proof is valid)
 		assertTrue(!result);
 	}
 }
