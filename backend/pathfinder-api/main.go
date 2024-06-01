@@ -5,24 +5,35 @@ import (
 	"encoding/json"
 	"log"
 	"math"
+	"math/big"
 	"net/http"
+	"strings"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
 
 type Prize struct {
-    ID        string  `json:"id"`
-    Latitude  float64 `json:"latitude"`
-    Longitude float64 `json:"longitude"`
-    Password  string  `json:"password"`
-    OtherData string  `json:"other_data"`
+    ID              string      `json:"id"` // will be keccak256(sender, nonce)
+    Sender          string      `json:"sender"`
+    Latitude        float64     `json:"latitude"`
+    Longitude       float64     `json:"longitude"`
+    Password        string      `json:"password"`
+    HashedPassword  string      `json:"hashedPassword"`
+    Type            string      `json:"type"`
+    ContractAddress string      `json:"contractAddress"`
+    Name            string      `json:"name"`
+    Symbol          string      `json:"symbol"`
+    Amount          *big.Int    `json:"amount"`
+}
+
+func NormalizeAddress(address string) string {
+    return strings.ToLower(address)
 }
 
 var prizes = []Prize{
-    {ID: uuid.NewString(), Latitude: 51.46772766113281, Longitude: -0.04456249997019768, Password: "pass123", OtherData: "test1"},
-    {ID: uuid.NewString(), Latitude: 51.56018644177826, Longitude: -0.0705879740416937, Password: "pass456", OtherData: "test2"},
+    {ID: "0xblabla", Latitude: 51.46772766113281, Longitude: -0.04456249997019768, Password: "pass123", },
+    {ID: "0x......", Latitude: 51.56018644177826, Longitude: -0.0705879740416937, Password: "pass456", OtherData: "test2"},
 }
 
 func getDistanceAndDirection(lat1, lon1, lat2, lon2 float64) (float64, float64) {
