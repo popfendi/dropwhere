@@ -31,20 +31,19 @@ func NormalizeAddress(address string) string {
     return strings.ToLower(address)
 }
 
-var prizes = []Prize{
-    {ID: "0xblabla", Latitude: 51.46772766113281, Longitude: -0.04456249997019768, Password: "pass123", },
-    {ID: "0x......", Latitude: 51.56018644177826, Longitude: -0.0705879740416937, Password: "pass456", OtherData: "test2"},
-}
-
-func getDistanceAndDirection(lat1, lon1, lat2, lon2 float64) (float64, float64) {
-    const R = 6371 // Radius of the Earth in km
+func haversine(lat1, lon1, lat2, lon2 float64) (float64, float64) {
+    const R = 6371 // Radius of the Earth in kilometers
     dLat := (lat2 - lat1) * (math.Pi / 180)
     dLon := (lon2 - lon1) * (math.Pi / 180)
     a := math.Sin(dLat/2)*math.Sin(dLat/2) +
         math.Cos(lat1*(math.Pi/180))*math.Cos(lat2*(math.Pi/180))*
             math.Sin(dLon/2)*math.Sin(dLon/2)
     c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
-    distance := R * c
+    return R * c, dLon
+}
+
+func getDistanceAndDirection(lat1, lon1, lat2, lon2 float64) (float64, float64) {
+    distance, dLon := haversine(lat1, lon1, lat2, lon2)
 
     y := math.Sin(dLon) * math.Cos(lat2*(math.Pi / 180))
     x := math.Cos(lat1*(math.Pi / 180))*math.Sin(lat2*(math.Pi / 180)) -
@@ -52,6 +51,11 @@ func getDistanceAndDirection(lat1, lon1, lat2, lon2 float64) (float64, float64) 
     bearing := math.Atan2(y, x) * (180 / math.Pi)
 
     return distance, bearing
+}
+
+func isWithinDistance(lat1, lon1, lat2, lon2, distance float64) bool {
+    r, _ := haversine(lat1, lon1, lat2, lon2)
+    return r <= distance
 }
 
 func getDelta(w http.ResponseWriter, r *http.Request) {
@@ -66,42 +70,121 @@ func getDelta(w http.ResponseWriter, r *http.Request) {
     }
 
     var deltas []struct {
-        ID        string  `json:"id"`
-        Direction float64 `json:"direction"`
-        Proximity string  `json:"proximity"`
+        ID              string      `json:"id"`
+        Direction       float64     `json:"direction"`
+        Proximity       string      `json:"proximity"`
+        Password        string      `json:"password,omitempty"`
+        HashedPassword  string      `json:"hashedPassword"`
+        Type            string      `json:"type"`
+        ContractAddress string      `json:"contractAddress"`
+        Name            string      `json:"name"`
+        Symbol          string      `json:"symbol"`
+        Amount          *big.Int    `json:"amount"`
+    }
+
+    prizes, err := getPrizeLocksWithinRadius(userLocation.Latitude, userLocation.Latitude, 10) // 10km (could be configurable)
+    if err != nil {
+        http.Error(w, "Failed to retrieve prizes", http.StatusInternalServerError)
+        return
     }
 
     for _, prize := range prizes {
         distance, direction := getDistanceAndDirection(userLocation.Latitude, userLocation.Longitude, prize.Latitude, prize.Longitude)
-        proximity := ">10km"
-        if distance <= 10 {
+        proximity := "10km"
+        switch true {
+        case distance <= 10:
             proximity = "<10km"
-        }
-        if distance <= 8 {
+        case distance <= 8:
             proximity = "<8km"
-        }
-        if distance <= 5 {
+        case distance <= 5:
             proximity = "<5km"
+        case distance <= 3:
+            proximity = "<3km"
+        case distance <= 1:
+            proximity = "<1km"
+        case distance <= .5:
+            proximity = "<500m"
+        case distance <= .25:
+            proximity = "<250m"
+        case distance <= .1:
+            proximity = "<100m"
         }
 
-        deltas = append(deltas, struct {
-            ID        string  `json:"id"`
-            Direction float64 `json:"direction"`
-            Proximity string  `json:"proximity"`
-        }{
-            ID:        prize.ID,
-            Direction: direction,
-            Proximity: proximity,
-        })
+        if isWithinDistance(userLocation.Latitude, userLocation.Longitude, prize.Latitude, prize.Longitude, 0.005) {
+            deltas = append(deltas, struct {
+                ID              string      `json:"id"`
+                Direction       float64     `json:"direction"`
+                Proximity       string      `json:"proximity"`
+                Password        string      `json:"password,omitempty"`
+                HashedPassword  string      `json:"hashedPassword"`
+                Type            string      `json:"type"`
+                ContractAddress string      `json:"contractAddress"`
+                Name            string      `json:"name"`
+                Symbol          string      `json:"symbol"`
+                Amount          *big.Int    `json:"amount"`
+            }{
+                ID:        prize.ID,
+                Direction: direction,
+                Proximity: proximity,
+                Password: prize.Password,
+                HashedPassword: prize.HashedPassword,
+                Type: prize.Type,
+                ContractAddress: prize.ContractAddress,
+                Name: prize.Name,
+                Symbol: prize.Symbol,
+                Amount: prize.Amount,
+            })
+        } else {
+            deltas = append(deltas, struct {
+                ID              string      `json:"id"`
+                Direction       float64     `json:"direction"`
+                Proximity       string      `json:"proximity"`
+                Password        string      `json:"password,omitempty"`
+                HashedPassword  string      `json:"hashedPassword"`
+                Type            string      `json:"type"`
+                ContractAddress string      `json:"contractAddress"`
+                Name            string      `json:"name"`
+                Symbol          string      `json:"symbol"`
+                Amount          *big.Int    `json:"amount"`
+            }{
+                ID:        prize.ID,
+                Direction: direction,
+                Proximity: proximity,
+                HashedPassword: prize.HashedPassword,
+                Type: prize.Type,
+                ContractAddress: prize.ContractAddress,
+                Name: prize.Name,
+                Symbol: prize.Symbol,
+                Amount: prize.Amount,
+            })
+        }
+
     }
 
     w.Header().Set("Content-Type", "application/json")
     json.NewEncoder(w).Encode(deltas)
 }
 
+func storePrizeLockHandler(w http.ResponseWriter, r *http.Request) {
+    var prize Prize
+    if err := json.NewDecoder(r.Body).Decode(&prize); err != nil {
+        http.Error(w, "Invalid request payload", http.StatusBadRequest)
+        return
+    }
+
+    if err := insertPrizeLockToDB(prize); err != nil {
+        http.Error(w, "Failed to store prize", http.StatusInternalServerError)
+        return
+    }
+
+    w.WriteHeader(http.StatusCreated)
+    w.Write([]byte("Prize stored successfully"))
+}
+
 func main() {
     r := mux.NewRouter()
     r.HandleFunc("/delta", getDelta).Methods("POST")
+    r.HandleFunc("/prizes", storePrizeLockHandler).Methods("POST")
 
 	headersOk := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type"})
 	originsOk := handlers.AllowedOrigins([]string{"https://localhost:3000"})
