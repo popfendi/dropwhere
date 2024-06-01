@@ -3,10 +3,11 @@ package main
 
 import (
 	"encoding/json"
-	"log"
+	"fmt"
 	"math"
 	"math/big"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/gorilla/handlers"
@@ -184,14 +185,18 @@ func storePrizeLockHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+    initLogger()
+    initDB()
+    port := os.Getenv("SERVER_PORT")
+    allowedHost := os.Getenv("ALLOWED_HOST")
     r := mux.NewRouter()
     r.HandleFunc("/delta", getDelta).Methods("POST")
     r.HandleFunc("/prizes", storePrizeLockHandler).Methods("POST")
 
 	headersOk := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type"})
-	originsOk := handlers.AllowedOrigins([]string{"https://localhost:3000"})
+	originsOk := handlers.AllowedOrigins([]string{allowedHost})
 	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"})
 
-    log.Println("Server is running on http://localhost:3001")
-    log.Fatal(http.ListenAndServe(":3001", handlers.CORS(originsOk, headersOk, methodsOk)(r)))
+    Sugar.Infof("Server is running on port %s", port)
+    Sugar.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), handlers.CORS(originsOk, headersOk, methodsOk)(r)))
 }

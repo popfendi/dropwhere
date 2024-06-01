@@ -16,11 +16,11 @@ func initDB() {
     connStr := fmt.Sprintf("host=%s user=%s dbname=%s sslmode=%s password=%s", os.Getenv("DB_HOST"), os.Getenv("DB_USER"), os.Getenv("DB_NAME"), os.Getenv("DB_SSL_MODE"), os.Getenv("DB_PASSWORD"))
     db, err = sql.Open("postgres", connStr)
     if err != nil {
-        //handle err
+        Sugar.Fatalf("DB ERROR: %s", err.Error())
     }
 
     if err = db.Ping(); err != nil {
-        //handler err
+        Sugar.Fatalf("DB ERROR: %s", err.Error())
     }
 }
 
