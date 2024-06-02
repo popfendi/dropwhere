@@ -1,0 +1,25 @@
+FROM golang:1.21 AS builder
+
+ENV CGO_ENABLED=1
+WORKDIR /app
+
+COPY go.mod ./
+COPY go.sum ./
+
+RUN go mod download
+
+COPY . .
+
+RUN go build -o myapp .
+RUN ls -la /app  # This will list the contents of /app, ensuring myapp is built
+
+
+FROM golang:1.21  
+
+WORKDIR /root/
+
+COPY --from=builder /app/myapp /root/myapp
+
+RUN chmod +x /root/myapp
+
+CMD /root/myapp

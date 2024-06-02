@@ -1,0 +1,18 @@
+docker_build('pathfinder-api', 'pathfinder-api/')
+
+# Use local_resource to manage docker-compose
+local_resource(
+    'docker-compose',
+    cmd='docker-compose up',
+    deps=['docker-compose.yaml', 'pathfinder-api/dockerfile', 'pathfinder-api/go.mod', 'pathfinder-api/go.sum', 'pathfinder-api/*.go']
+)
+
+# Watch for changes in the Dockerfile, Docker Compose file, Go source code, and dependency files
+watch_file('pathfinder-api/dockerfile')
+watch_file('docker-compose.yaml')
+watch_file('pathfinder-api/go.mod')
+watch_file('pathfinder-api/go.sum')
+watch_file('pathfinder-api/*.go')
+
+# Trigger docker-compose down when Tilt stops
+docker_compose("./docker-compose.yaml")
