@@ -11,61 +11,74 @@ contract VerifierTest is Test {
 		verifier = new Verifier();
 	}
 
-	function convertHashToUint256Array(
-		bytes32 hash
-	) public pure returns (uint256[33] memory) {
-		uint256[33] memory result;
+	function convertToUint256Array(
+		address addr1,
+		address addr2,
+		bytes32 b1,
+		bytes32 b2
+	) public pure returns (uint256[104] memory) {
+		uint256[104] memory result;
 
-		for (uint256 i = 0; i < 32; i++) {
-			result[i] = uint256(uint8(hash[i]));
+		for (uint256 i = 0; i < 20; i++) {
+			result[i] = uint256(uint8(bytes20(addr1)[i]));
+			result[i + 20] = uint256(uint8(bytes20(addr2)[i]));
 		}
 
-		result[32] = 0;
+		for (uint256 i = 0; i < 32; i++) {
+			result[i + 40] = uint256(uint8(b1[i]));
+			result[i + 72] = uint256(uint8(b2[i]));
+		}
 
 		return result;
 	}
 
 	function testVerifyTxPass() public {
-		bytes32 hashed = 0x7e7dbfd841aa32343b03b0e4ec481e6c9bbb71dcafdb49c1a191df2ca09da5ec;
+		address locker = 0x0a2E421B230AB473619D9E2B4b4fBbC1e2c2C5d3;
+		address unlocker = 0x2465F36F0Cf94d4bea77A6f1D775984274461e36;
+		bytes32 passHash = keccak256("password111");
+		bytes32 lockHash = keccak256(abi.encodePacked(passHash, locker));
+		bytes32 unlockHash = keccak256(abi.encodePacked(passHash, unlocker));
 
 		uint[2] memory a = [
 			uint256(
-				0x28d2286dffe7907523d6c4fd577bd655a7f3429eae22d667a92e897e397a6e58
+				0x2d6cf7f6b5d48172314a9709397f56dbc44310b9b656bd68591dcf6a3d2032e5
 			),
 			uint256(
-				0x138c06a1869e4e92736bdb6a97e3ca2901a38c797b558db3b27497b1c2e6e44e
+				0x159632bb7825ddcab8e1bc40835bc8beb1f3f54c6cf1266f84b7061e396cad8d
 			)
 		];
 		uint[2][2] memory b = [
 			[
 				uint256(
-					0x1cbaabd669331b86e3f01568a52ba73110420ceeb851a1397967667f46515701
+					0x2e269c207af3d448150e0703997a4818c48455dc8f1265b49f66e496fa09259b
 				),
 				uint256(
-					0x0654d3bfb61ba697930cc4e7386c39c9d8abdc6247178184e46206395804209c
+					0x0e6b77d03d593c70b764c82133f126f0d70619a25555b5bcff7f95a672f7f182
 				)
 			],
 			[
 				uint256(
-					0x215811c22a9fd9ca78408f5519c79a8b8584f9b0fde97b9d2c58738ff999a6a4
+					0x1a51b47b3b02743fc7886a128a6a028569dc530351b50990ac7c8f6a9c3c1e49
 				),
 				uint256(
-					0x2087b6b4fd4ae19829bc17511306df17f01a6cbe494707a4ca686fa3f0e5d946
+					0x00478978e76b8ce2d49017421c720ddbc0e6fa44f62de29c6acf9ae17fe64f60
 				)
 			]
 		];
 		uint[2] memory c = [
 			uint256(
-				0x2e81318487b3c82d121c78b9ac31b948c9fcaaaac1e04066a74a5c0156812df7
+				0x116803c0fc3084a4098b745e5c61bed686d05a1c831f0082b8add58045307fbf
 			),
 			uint256(
-				0x12e0e156f12d90a9aa92d6f4e1a7845dd927958b3308e7f729c033042bbf7609
+				0x108e848c35b7bfa27263d51ab227e72afc2d1484d69600b938337f2986403e41
 			)
 		];
 
-		uint[33] memory input = convertHashToUint256Array(hashed);
-		input[32] = uint256(
-			0x0000000000000000000000000000000000000000000000000000000000000000
+		uint[104] memory input = convertToUint256Array(
+			locker,
+			unlocker,
+			unlockHash,
+			lockHash
 		);
 
 		Verifier.Proof memory proof = Verifier.Proof({
@@ -80,46 +93,55 @@ contract VerifierTest is Test {
 	}
 
 	function testVerifyTxFail() public {
-		bytes32 hashed = 0x7e7dbfd841aa32343b03b0e4ec481e6c9bbb71dcafdb49c1a191df2ca09da5ec;
+		address locker = 0x0a2E421B230AB473619D9E2B4b4fBbC1e2c2C5d3;
+		address unlocker = 0x2465F36F0Cf94d4bea77A6f1D775984274461e36;
+		bytes32 passHash = keccak256("password111");
+		bytes32 wrongPassHash = keccak256("wrongPassWord");
+		bytes32 lockHash = keccak256(abi.encodePacked(passHash, locker));
+		bytes32 unlockHash = keccak256(
+			abi.encodePacked(wrongPassHash, unlocker)
+		);
 
 		uint[2] memory a = [
 			uint256(
-				0x060e44ba1b13af5552d78d8884f632e9e5d22405e1e0330980d1f57be26fab86
+				0x2c42fb40f85226fec44ee8efb597597f7ad1e6e5a36c52d5b89882dcea6b6a15
 			),
 			uint256(
-				0x2c2dded26061859fd863031b0bab8d4589512473044811c3ed13c0c7cea2d228
+				0x04a79388ab867f55c02c511b15720fc4f75f3086cc2d89d8fe5561bd4ce9cbf9
 			)
 		];
 		uint[2][2] memory b = [
 			[
 				uint256(
-					0x107e39dc4b252e954f12c39e10570c7abcb07d5625963d1d61d9d9cc9551c519
+					0x23bc47678acf5f6d96174fc61e0b01752aa12dcf1fc05cd2c0d95000002b2e1f
 				),
 				uint256(
-					0x0400ffcd7d8dcf556e0bfb3408b34ce4a5479012fdcfa859d92b4fa0f4433177
+					0x2c05d0f1151fa00775f7a5b4c6b1d4174d6ac66047b5a1f4dc0bed490a0d1113
 				)
 			],
 			[
 				uint256(
-					0x21a468a756c075ef247da0350483da285cdef0e66feec9c8ec0af213f2334b6c
+					0x09ee6a245d26cd19af0602076b746f663f915f83b9027fb0d5f6d74db06df0d6
 				),
 				uint256(
-					0x121deb7d2d8aec469053b1636b4cd8ae683861ffc4d99653ba617ceb34be0834
+					0x1e45388bc2f3eb7c099d6d3b7b7ca722e80697ba79ab8e837c4d761c00ed21ac
 				)
 			]
 		];
 		uint[2] memory c = [
 			uint256(
-				0x1f3b281513fc699e8a2b4e11144ef89c0f608d0530f9ff55fd1749f3935b007e
+				0x004419a0465d9b994efc7c6a09ac4303c108146ee1ee0ba4ca73c5a1ffdc8ccd
 			),
 			uint256(
-				0x1518d8c99dcb2fc8bb6a89cfe28f3492e49bc58607297188e83ae4db90d45975
+				0x14472fc146c5124305ce0245e628d5eb2a05abaa2fb338f64ab6ce671af99a57
 			)
 		];
 
-		uint[33] memory input = convertHashToUint256Array(hashed);
-		input[32] = uint256(
-			0x0000000000000000000000000000000000000000000000000000000000000000
+		uint[104] memory input = convertToUint256Array(
+			locker,
+			unlocker,
+			unlockHash,
+			lockHash
 		);
 
 		Verifier.Proof memory proof = Verifier.Proof({
@@ -130,6 +152,6 @@ contract VerifierTest is Test {
 
 		bool result = verifier.verifyTx(proof, input);
 
-		assertTrue(!result);
+		assertFalse(result);
 	}
 }
