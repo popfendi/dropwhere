@@ -9,7 +9,7 @@ CREATE TABLE prizes (
     contract_address TEXT,
     name TEXT,
     symbol TEXT,
-    amount BIGINT,
+    amount NUMERIC,
     expires BIGINT,
     active BOOLEAN
 );

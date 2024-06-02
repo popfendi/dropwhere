@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"math/big"
 	"os"
 	"time"
 
@@ -26,11 +27,12 @@ func initDB() {
 
 func insertPrizeLockToDB(prize Prize) error {
     query := `
-        INSERT INTO prizes (id, sender, latitude, longitude, password, hashed_password, type, contract_address, name, symbol, amount, expires, active)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-    `
+    INSERT INTO prizes (id, sender, latitude, longitude, password, hashed_password, type, contract_address, name, symbol, amount, expires, active)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+`
+    amountStr := prize.Amount.String()
     _, err := db.Exec(query, prize.ID, prize.Sender, prize.Latitude, prize.Longitude, prize.Password, prize.HashedPassword,
-        prize.Type, prize.ContractAddress, prize.Name, prize.Symbol, prize.Amount, prize.Expires, prize.Active)
+        prize.Type, prize.ContractAddress, prize.Name, prize.Symbol, amountStr, prize.Expires, prize.Active)
     return err
 }
 
@@ -48,10 +50,14 @@ func getPrizeLocksWithinRadius(lat, lon, radius float64) ([]Prize, error) {
     var prizes []Prize
     for rows.Next() {
         var prize Prize
+        var amountStr string
         if err := rows.Scan(&prize.ID, &prize.Sender, &prize.Latitude, &prize.Longitude, &prize.Password, &prize.HashedPassword,
-            &prize.Type, &prize.ContractAddress, &prize.Name, &prize.Symbol, &prize.Amount, &prize.Expires, &prize.Active); err != nil {
+            &prize.Type, &prize.ContractAddress, &prize.Name, &prize.Symbol, &amountStr, &prize.Expires, &prize.Active); err != nil {
             return nil, err
         }
+
+        prize.Amount = new(big.Int)
+        prize.Amount.SetString(amountStr, 10)
 
         distance, _ := haversine(lat, lon, prize.Latitude, prize.Longitude)
 

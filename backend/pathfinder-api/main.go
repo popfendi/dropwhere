@@ -66,56 +66,47 @@ func isWithinDistance(lat1, lon1, lat2, lon2, distance float64) bool {
     return r <= distance
 }
 
-func getDelta(w http.ResponseWriter, r *http.Request) {
-    var userLocation struct {
-        Latitude  float64 `json:"latitude"`
-        Longitude float64 `json:"longitude"`
-    }
+type Delta struct {
+    ID              string      `json:"id"`
+    Direction       float64     `json:"direction"`
+    Proximity       string      `json:"proximity"`
+    Password        string      `json:"password,omitempty"`
+    HashedPassword  string      `json:"hashedPassword"`
+    Type            string      `json:"type"`
+    ContractAddress string      `json:"contractAddress"`
+    Name            string      `json:"name"`
+    Symbol          string      `json:"symbol"`
+    Amount          *big.Int    `json:"amount"`
+} 
 
-    if err := json.NewDecoder(r.Body).Decode(&userLocation); err != nil {
-        http.Error(w, err.Error(), http.StatusBadRequest)
-        return
-    }
+type UserLocation struct {
+    Latitude  float64 `json:"latitude"`
+    Longitude float64 `json:"longitude"`
+}
 
-    var deltas []struct {
-        ID              string      `json:"id"`
-        Direction       float64     `json:"direction"`
-        Proximity       string      `json:"proximity"`
-        Password        string      `json:"password,omitempty"`
-        HashedPassword  string      `json:"hashedPassword"`
-        Type            string      `json:"type"`
-        ContractAddress string      `json:"contractAddress"`
-        Name            string      `json:"name"`
-        Symbol          string      `json:"symbol"`
-        Amount          *big.Int    `json:"amount"`
-    }
-
-    prizes, err := getPrizeLocksWithinRadius(userLocation.Latitude, userLocation.Latitude, 10) // 10km (could be configurable)
-    if err != nil {
-        http.Error(w, "Failed to retrieve prizes", http.StatusInternalServerError)
-        return
-    }
+func filterPrizeDeltas(userLocation UserLocation, prizes []Prize) []Delta{
+    var deltas []Delta
 
     for _, prize := range prizes {
         distance, direction := getDistanceAndDirection(userLocation.Latitude, userLocation.Longitude, prize.Latitude, prize.Longitude)
         proximity := "10km"
         switch true {
-        case distance <= 10:
-            proximity = "<10km"
-        case distance <= 8:
-            proximity = "<8km"
-        case distance <= 5:
-            proximity = "<5km"
-        case distance <= 3:
-            proximity = "<3km"
+        case distance <= 0.1:
+            proximity = "<100m"
+        case distance <= 0.25:
+            proximity = "<250m"
+        case distance <= 0.5:
+            proximity = "<500m"
         case distance <= 1:
             proximity = "<1km"
-        case distance <= .5:
-            proximity = "<500m"
-        case distance <= .25:
-            proximity = "<250m"
-        case distance <= .1:
-            proximity = "<100m"
+        case distance <= 3:
+            proximity = "<3km"
+        case distance <= 5:
+            proximity = "<5km"
+        case distance <= 8:
+            proximity = "<8km"
+        case distance <= 10:
+            proximity = "<10km"
         }
 
         if isWithinDistance(userLocation.Latitude, userLocation.Longitude, prize.Latitude, prize.Longitude, 0.005) {
@@ -168,6 +159,27 @@ func getDelta(w http.ResponseWriter, r *http.Request) {
         }
 
     }
+    return deltas
+}
+
+func getDelta(w http.ResponseWriter, r *http.Request) {
+    var userLocation UserLocation
+
+    if err := json.NewDecoder(r.Body).Decode(&userLocation); err != nil {
+        http.Error(w, err.Error(), http.StatusBadRequest)
+        Sugar.Error(err)
+        return
+    }
+
+
+    prizes, err := getPrizeLocksWithinRadius(userLocation.Latitude, userLocation.Longitude, 10) // 10km (could be configurable)
+    if err != nil {
+        http.Error(w, "Failed to retrieve prizes", http.StatusInternalServerError)
+        Sugar.Error(err)
+        return
+    }
+
+   deltas := filterPrizeDeltas(userLocation, prizes)
 
     w.Header().Set("Content-Type", "application/json")
     json.NewEncoder(w).Encode(deltas)
@@ -177,6 +189,7 @@ func storePrizeLockHandler(w http.ResponseWriter, r *http.Request) {
     var prize Prize
     if err := json.NewDecoder(r.Body).Decode(&prize); err != nil {
         http.Error(w, "Invalid request payload", http.StatusBadRequest)
+        Sugar.Error(err)
         return
     }
 
@@ -184,6 +197,7 @@ func storePrizeLockHandler(w http.ResponseWriter, r *http.Request) {
 
     if err := insertPrizeLockToDB(prize); err != nil {
         http.Error(w, "Failed to store prize", http.StatusInternalServerError)
+        Sugar.Error(err)
         return
     }
 
