@@ -30,8 +30,13 @@ type Prize struct {
     Active          bool        `json:"active"`
 }
 
-func NormalizeAddress(address string) string {
+func normalizeAddress(address string) string {
     return strings.ToLower(address)
+}
+
+func (p *Prize) normalizePrizeAddresses(){
+    p.ID = normalizeAddress(p.ID)
+    p.ContractAddress = normalizeAddress(p.ContractAddress)
 }
 
 func haversine(lat1, lon1, lat2, lon2 float64) (float64, float64) {
@@ -174,6 +179,8 @@ func storePrizeLockHandler(w http.ResponseWriter, r *http.Request) {
         http.Error(w, "Invalid request payload", http.StatusBadRequest)
         return
     }
+
+    prize.normalizePrizeAddresses()
 
     if err := insertPrizeLockToDB(prize); err != nil {
         http.Error(w, "Failed to store prize", http.StatusInternalServerError)
