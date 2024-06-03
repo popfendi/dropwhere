@@ -32,12 +32,44 @@ const Compass = () => {
             {
               id: "75b065e1-2f33-44c1-8be3-052b169da214",
               direction: -109.56566011365483,
-              proximity: "5km",
+              proximity: "<5km",
+              symbol: "$test",
             },
             {
               id: "b7816282-8639-4462-af86-a7db9cffdc53",
               direction: -11.760248531080874,
               proximity: "10km",
+              symbol: "$tst",
+            },
+            {
+              id: "3",
+              direction: -90.56566011365483,
+              proximity: "<3km",
+              symbol: "$test",
+            },
+            {
+              id: "4",
+              direction: -30.760248531080874,
+              proximity: "<250m",
+              symbol: "$tst",
+            },
+            {
+              id: "5",
+              direction: -140.56566011365483,
+              proximity: "<8km",
+              symbol: "$test",
+            },
+            {
+              id: "6",
+              direction: -170.760248531080874,
+              proximity: "<500m",
+              symbol: "$tst",
+            },
+            {
+              id: "7",
+              direction: -200.760248531080874,
+              proximity: "<10km",
+              symbol: "$tst",
             },
           ]);
         }
@@ -54,21 +86,56 @@ const Compass = () => {
       {
         id: "75b065e1-2f33-44c1-8be3-052b169da214",
         direction: -109.56566011365483,
-        proximity: "5km",
+        proximity: "<5km",
+        symbol: "$test",
       },
       {
         id: "b7816282-8639-4462-af86-a7db9cffdc53",
         direction: -11.760248531080874,
         proximity: "10km",
+        symbol: "$tst",
+      },
+      {
+        id: "3",
+        direction: -90.56566011365483,
+        proximity: "<3km",
+        symbol: "$test",
+      },
+      {
+        id: "4",
+        direction: -30.760248531080874,
+        proximity: "<250m",
+        symbol: "$tst",
+      },
+      {
+        id: "5",
+        direction: -140.56566011365483,
+        proximity: "<8km",
+        symbol: "$test",
+      },
+      {
+        id: "6",
+        direction: -170.760248531080874,
+        proximity: "<500m",
+        symbol: "$tst",
+      },
+      {
+        id: "7",
+        direction: -200.760248531080874,
+        proximity: "<10km",
+        symbol: "$tst",
       },
     ]);
   }, []);
 
   const compassStyle = {
     transform: `rotate(${alpha}deg)`,
-    height: "200px",
-    width: "200px",
-    border: "10px solid black",
+    height: "90px",
+    width: "90px",
+    border: "3px solid #9792E3",
+    backgroundColor: "#9792E3",
+    margin: 0,
+    padding: 0,
     borderRadius: "50%",
     display: "flex",
     alignItems: "center",
@@ -77,51 +144,123 @@ const Compass = () => {
     fontWeight: "bold",
   };
 
-  const prizeStyle = (direction) => ({
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    transform: `rotate(${direction}deg) translate(0, -150px) rotate(${-direction}deg)`, // Adjust the position to the edge
-    transformOrigin: "center center",
-  });
+  const getPrizeStyleData = (delta) => {
+    var obj = {};
+    switch (delta.proximity) {
+      case "<250m":
+        obj.size = 50;
+        obj.color = "#61E786";
+        obj.offset = "100";
+        break;
+      case "<500m":
+        obj.size = 40;
+        obj.color = "#61E786";
+        obj.offset = "110";
+        break;
+      case "<1km":
+        obj.size = 40;
+        obj.color = "#E6AF2E";
+        obj.offset = "120";
+        break;
+      case "<3km":
+        obj.size = 35;
+        obj.color = "#E6AF2E";
+        obj.offset = "130";
+        break;
+      case "<5km":
+        obj.size = 35;
+        obj.color = "#FF7D00";
+        obj.offset = "140";
+        break;
+      case "<8km":
+        obj.size = 35;
+        obj.color = "#FF7D00";
+        obj.offset = "150";
+        break;
+      case "<10km":
+        obj.size = 30;
+        obj.color = "#BD1E1E";
+        obj.offset = "160";
+        break;
+      case "10km":
+        obj.size = 25;
+        obj.color = "#BD1E1E";
+        obj.offset = "175";
+        break;
+    }
+    return obj;
+  };
+
+  const prizeStyle = (delta) => {
+    var obj = getPrizeStyleData(delta);
+    return {
+      position: "absolute",
+      top: "50%",
+      left: "50%",
+      borderRadius: "50%",
+      width: obj.size,
+      height: obj.size,
+      padding: 10,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      transform: `rotate(${delta.direction}deg) translate(0, -${obj.offset}px) rotate(${-delta.direction}deg)`, // Adjust the position to the edge
+      transformOrigin: "center center",
+      backgroundColor: obj.color,
+    };
+  };
 
   const prizeTextStyle = (direction) => ({
     transform: `rotate(${direction}deg)`,
+    fontSize: 10,
   });
 
-  if (alpha) {
-    return (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100vh",
-        }}
-      >
-        <div style={compassStyle}>
-          <div
-            style={{
-              position: "absolute",
-              top: "50%",
-              transform: "translateY(-50%)",
-            }}
-          ></div>
-          👆
+  /*
+  if (error) {
+    alert(error);
+  }
+*/
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        height: "95vh",
+      }}
+    >
+      <div className="radar-container" style={compassStyle}>
+        <div className="radar-div">
           {deltas.map((delta) => (
-            <div key={delta.id} style={prizeStyle(delta.direction)}>
+            <div
+              className="radar-icon"
+              key={delta.id}
+              style={prizeStyle(delta)}
+            >
               <div style={prizeTextStyle(delta.direction)}>
                 {delta.proximity}
               </div>
             </div>
           ))}
         </div>
-        {error && <p>{error}</p>}
-        <p>{dir}</p>
+        <p
+          style={{
+            color: "#48435C",
+            fontSize: 15,
+            fontFamily: "Times New Roman",
+            minWidth: "30px",
+            maxWidth: "30px",
+            textAlign: "center",
+            transform: `rotate(${-alpha}deg)`,
+          }}
+        >
+          {dir}
+        </p>
       </div>
-    );
-  }
+    </div>
+  );
 };
 
 export default Compass;

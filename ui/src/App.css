@@ -1,1 +1,49 @@
+html {
+  overflow: hidden;
+}
 
+.App {
+  background-color: rgb(61, 59, 89);
+  /*background: url("./40.png"), rgb(61, 59, 89);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100px 100px;*/
+  overflow: hidden;
+}
+
+.overlay {
+  background-color: transparent !important;
+  opacity: 0.6;
+  height: 95vh;
+  width: 100vw;
+  background: url("./radar.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 400px 400px;
+  position: absolute;
+  filter: invert(1);
+  pointer-events: none;
+}
+
+.radar-container {
+}
+
+.radar-div {
+  translate: 0px -40px;
+}
+
+.radar-icon {
+  animation: pulse 5s ease-in-out 0s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
