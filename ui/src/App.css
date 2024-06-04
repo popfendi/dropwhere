@@ -80,6 +80,7 @@ html {
   outline: 1px solid transparent;
   animation: pulseanim 5s ease-in-out infinite;
   position: absolute;
+  pointer-events: none;
   z-index: -999;
 }
 
