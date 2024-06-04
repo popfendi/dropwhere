@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import useDeviceOrientation from "../hooks/useDeviceOrientation";
 import useGeolocation from "../hooks/useGeolocation";
 
-const Compass = () => {
+const Compass = (props) => {
   const { alpha, dir } = useDeviceOrientation();
   const { position, error } = useGeolocation();
   const [deltas, setDeltas] = useState([]);
@@ -34,42 +34,63 @@ const Compass = () => {
               direction: -109.56566011365483,
               proximity: "<5km",
               symbol: "$test",
+              name: "test",
+              amount: 1000000000,
+              type: "erc20",
             },
             {
               id: "b7816282-8639-4462-af86-a7db9cffdc53",
               direction: -11.760248531080874,
               proximity: "10km",
               symbol: "$tst",
+              name: "test",
+              amount: 1000000000,
+              type: "erc20",
             },
             {
               id: "3",
               direction: -90.56566011365483,
               proximity: "<3km",
               symbol: "$test",
+              name: "test",
+              amount: 1000000000,
+              type: "erc20",
             },
             {
               id: "4",
               direction: -30.760248531080874,
               proximity: "<250m",
               symbol: "$tst",
+              name: "test",
+              amount: 1000000000,
+              type: "erc20",
             },
             {
               id: "5",
               direction: -140.56566011365483,
               proximity: "<8km",
               symbol: "$test",
+              name: "test",
+              amount: 1000000000,
+              type: "erc20",
             },
             {
               id: "6",
               direction: -170.760248531080874,
               proximity: "<500m",
               symbol: "$tst",
+              name: "test",
+              amount: 1000000000,
+              type: "erc20",
             },
             {
               id: "7",
               direction: -200.760248531080874,
               proximity: "<10km",
               symbol: "$tst",
+              name: "test",
+              amount: 1000000000,
+              type: "erc20",
             },
           ]);
         }
@@ -88,42 +109,63 @@ const Compass = () => {
         direction: -109.56566011365483,
         proximity: "<5km",
         symbol: "$test",
+        name: "test",
+        amount: 1000000000,
+        type: "erc20",
       },
       {
         id: "b7816282-8639-4462-af86-a7db9cffdc53",
         direction: -11.760248531080874,
         proximity: "10km",
         symbol: "$tst",
+        name: "test",
+        amount: 1000000000,
+        type: "erc20",
       },
       {
         id: "3",
         direction: -90.56566011365483,
         proximity: "<3km",
         symbol: "$test",
+        name: "test",
+        amount: 1000000000,
+        type: "erc20",
       },
       {
         id: "4",
         direction: -30.760248531080874,
         proximity: "<250m",
         symbol: "$tst",
+        name: "test",
+        amount: 1000000000,
+        type: "erc20",
       },
       {
         id: "5",
         direction: -140.56566011365483,
         proximity: "<8km",
         symbol: "$test",
+        name: "test",
+        amount: 1000000000,
+        type: "erc20",
       },
       {
         id: "6",
         direction: -170.760248531080874,
         proximity: "<500m",
         symbol: "$tst",
+        name: "test",
+        amount: 1000000000,
+        type: "erc20",
       },
       {
         id: "7",
         direction: -200.760248531080874,
         proximity: "<10km",
         symbol: "$tst",
+        name: "test",
+        amount: 1000000000,
+        type: "erc20",
       },
     ]);
   }, []);
@@ -150,42 +192,42 @@ const Compass = () => {
       case "<250m":
         obj.size = 50;
         obj.color = "#61E786";
-        obj.offset = "100";
+        obj.offset = "90";
         break;
       case "<500m":
         obj.size = 40;
         obj.color = "#61E786";
-        obj.offset = "110";
+        obj.offset = "95";
         break;
       case "<1km":
         obj.size = 40;
         obj.color = "#E6AF2E";
-        obj.offset = "120";
+        obj.offset = "100";
         break;
       case "<3km":
         obj.size = 35;
         obj.color = "#E6AF2E";
-        obj.offset = "130";
+        obj.offset = "100";
         break;
       case "<5km":
         obj.size = 35;
         obj.color = "#FF7D00";
-        obj.offset = "140";
+        obj.offset = "115";
         break;
       case "<8km":
         obj.size = 35;
         obj.color = "#FF7D00";
-        obj.offset = "150";
+        obj.offset = "155";
         break;
       case "<10km":
         obj.size = 30;
         obj.color = "#BD1E1E";
-        obj.offset = "160";
+        obj.offset = "175";
         break;
       case "10km":
         obj.size = 25;
         obj.color = "#BD1E1E";
-        obj.offset = "175";
+        obj.offset = "181";
         break;
     }
     return obj;
@@ -240,7 +282,7 @@ const Compass = () => {
               style={prizeStyle(delta)}
             >
               <div style={prizeTextStyle(delta.direction)}>
-                {delta.proximity}
+                {delta[props.display]}
               </div>
             </div>
           ))}

@@ -1,5 +1,6 @@
 html {
   overflow: hidden;
+  width: 100%;
 }
 
 .App {
@@ -9,11 +10,34 @@ html {
   background-position: center;
   background-size: 100px 100px;*/
   overflow: hidden;
+  width: 100%;
+}
+
+.nav-buttons {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  padding: 10px;
+}
+
+.info-button {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid #9792e3;
+  width: 30px;
+  height: 30px;
+  background-color: transparent;
+  color: #9792e3;
+  cursor: pointer;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 20px;
+  right: 25%;
+  top: 30%;
 }
 
 .overlay {
   background-color: transparent !important;
-  opacity: 0.6;
+  opacity: 0.5;
   height: 95vh;
   width: 100vw;
   background: url("./radar.png");
