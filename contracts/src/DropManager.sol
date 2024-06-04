@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/interfaces/IERC721Receiver.sol";
 
-//import "forge-std/console.sol"; //REMOVE AFTER TESTING
+import "forge-std/console.sol"; //REMOVE AFTER TESTING
 
 contract DropManager is IERC721Receiver {
 	struct Drop {
@@ -33,6 +33,24 @@ contract DropManager is IERC721Receiver {
 
 	constructor() {}
 
+	function getDropLockById(
+		bytes32 id
+	)
+		public
+		view
+		returns (address, bytes32, string memory, address, uint256, uint256)
+	{
+		Drop storage d = drops[id];
+		return (
+			d.sender,
+			d.hashedPassword,
+			d.prizeType,
+			d.contractAddress,
+			d.amount,
+			d.expiry
+		);
+	}
+
 	function createDropLockERC20(
 		bytes32 hashedPassword,
 		address contractAddress,
@@ -43,6 +61,7 @@ contract DropManager is IERC721Receiver {
 			expiry >= block.timestamp + 86400,
 			"Expiry must be at least 24 hours from now"
 		);
+
 		uint256 initialBalance = IERC20(contractAddress).balanceOf(
 			address(this)
 		);
