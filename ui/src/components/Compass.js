@@ -300,6 +300,7 @@ const Compass = (props) => {
         >
           {dir}
         </p>
+        <div className="pulseLoader"></div>
       </div>
     </div>
   );
