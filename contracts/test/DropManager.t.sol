@@ -283,4 +283,132 @@ contract ManagerTest is Test {
 		balance = token.balanceOf(unlocker);
 		assertEq(amount, balance);
 	}
+
+	function testUnlockERC721() public {
+		address locker = 0x0a2E421B230AB473619D9E2B4b4fBbC1e2c2C5d3;
+		vm.deal(locker, 2 ether);
+		address[] memory arg = new address[](1);
+		arg[0] = locker;
+		uint96[] memory arg2 = new uint96[](1);
+		arg2[0] = 1;
+		vm.prank(locker);
+		ERC721ConsecutiveMock token = new ERC721ConsecutiveMock(
+			"test",
+			"test",
+			0,
+			arg,
+			arg,
+			arg2
+		);
+
+		bytes32 passHash = keccak256("password111");
+		bytes32 hashedPassword = keccak256(abi.encodePacked(passHash, locker));
+
+		uint256 balance = token.balanceOf(locker);
+		assertEq(balance, 1, "Minting failed");
+
+		uint256 tokenId = 0;
+
+		vm.prank(locker);
+		token.approve(address(dm), tokenId);
+
+		bytes32 id = keccak256(abi.encodePacked(locker, dm.userNonces(locker)));
+		vm.prank(locker);
+		dm.createDropLockERC721(
+			hashedPassword,
+			address(token),
+			tokenId,
+			block.timestamp + 86400
+		);
+
+		(
+			address sender,
+			bytes32 hPass,
+			string memory prizeType,
+			address contractAddress,
+			uint256 amount,
+			uint256 expiry
+		) = dm.getDropLockById(id);
+
+		balance = token.balanceOf(address(dm));
+
+		assertEq(sender, locker);
+		assertEq(hPass, hashedPassword);
+		assertEq(prizeType, "erc721");
+		assertEq(contractAddress, address(token));
+		assertEq(amount, tokenId);
+		assertEq(expiry, block.timestamp + 86400);
+		assertEq(balance, 1, "Token transfer failed");
+
+		address unlocker = 0x2465F36F0Cf94d4bea77A6f1D775984274461e36;
+		bytes32 unlockHash = keccak256(abi.encodePacked(passHash, unlocker));
+
+		vm.deal(unlocker, 2 ether);
+		DropManager.ProofData memory proof = DropManager.ProofData({
+			a0: 0x2d6cf7f6b5d48172314a9709397f56dbc44310b9b656bd68591dcf6a3d2032e5,
+			a1: 0x159632bb7825ddcab8e1bc40835bc8beb1f3f54c6cf1266f84b7061e396cad8d,
+			b00: 0x2e269c207af3d448150e0703997a4818c48455dc8f1265b49f66e496fa09259b,
+			b01: 0x0e6b77d03d593c70b764c82133f126f0d70619a25555b5bcff7f95a672f7f182,
+			b10: 0x1a51b47b3b02743fc7886a128a6a028569dc530351b50990ac7c8f6a9c3c1e49,
+			b11: 0x00478978e76b8ce2d49017421c720ddbc0e6fa44f62de29c6acf9ae17fe64f60,
+			c0: 0x116803c0fc3084a4098b745e5c61bed686d05a1c831f0082b8add58045307fbf,
+			c1: 0x108e848c35b7bfa27263d51ab227e72afc2d1484d69600b938337f2986403e41
+		});
+		vm.prank(unlocker);
+		dm.unlockDrop(proof, id, unlockHash);
+		balance = token.balanceOf(unlocker);
+		assertEq(balance, 1);
+	}
+
+	function testUnlockETH() public {
+		address locker = 0x0a2E421B230AB473619D9E2B4b4fBbC1e2c2C5d3;
+		vm.deal(locker, 2 ether);
+
+		uint256 ethAmount = 1000000;
+		bytes32 passHash = keccak256("password111");
+		bytes32 hashedPassword = keccak256(abi.encodePacked(passHash, locker));
+		bytes32 id = keccak256(abi.encodePacked(locker, dm.userNonces(locker)));
+		vm.prank(locker);
+		dm.createDropLockETH{ value: ethAmount }(
+			hashedPassword,
+			block.timestamp + 86400
+		);
+
+		(
+			address sender,
+			bytes32 hPass,
+			string memory prizeType,
+			address contractAddress,
+			uint256 amount,
+			uint256 expiry
+		) = dm.getDropLockById(id);
+
+		assertEq(sender, locker);
+		assertEq(hPass, hashedPassword);
+		assertEq(prizeType, "eth");
+		assertEq(contractAddress, address(0));
+		assertEq(amount, ethAmount);
+		assertEq(expiry, block.timestamp + 86400);
+		assertEq(address(dm).balance, ethAmount);
+
+		address unlocker = 0x2465F36F0Cf94d4bea77A6f1D775984274461e36;
+		bytes32 unlockHash = keccak256(abi.encodePacked(passHash, unlocker));
+
+		vm.deal(unlocker, 2 ether);
+		vm.prank(unlocker);
+		DropManager.ProofData memory proof = DropManager.ProofData({
+			a0: 0x2d6cf7f6b5d48172314a9709397f56dbc44310b9b656bd68591dcf6a3d2032e5,
+			a1: 0x159632bb7825ddcab8e1bc40835bc8beb1f3f54c6cf1266f84b7061e396cad8d,
+			b00: 0x2e269c207af3d448150e0703997a4818c48455dc8f1265b49f66e496fa09259b,
+			b01: 0x0e6b77d03d593c70b764c82133f126f0d70619a25555b5bcff7f95a672f7f182,
+			b10: 0x1a51b47b3b02743fc7886a128a6a028569dc530351b50990ac7c8f6a9c3c1e49,
+			b11: 0x00478978e76b8ce2d49017421c720ddbc0e6fa44f62de29c6acf9ae17fe64f60,
+			c0: 0x116803c0fc3084a4098b745e5c61bed686d05a1c831f0082b8add58045307fbf,
+			c1: 0x108e848c35b7bfa27263d51ab227e72afc2d1484d69600b938337f2986403e41
+		});
+
+		dm.unlockDrop(proof, id, unlockHash);
+		uint256 balance = unlocker.balance;
+		assertTrue(balance > 2 ether);
+	}
 }

@@ -271,8 +271,6 @@ contract DropManager is IERC721Receiver {
 			uint256 expiry
 		) = getDropLockById(lockId);
 
-		console.log(prizeType);
-
 		require(!compareStrings(prizeType, ""), "Drop Doesn't Exist");
 		require(block.timestamp < expiry, "Lock Has Expired");
 
@@ -297,6 +295,62 @@ contract DropManager is IERC721Receiver {
 		});
 
 		require(verifier.verifyTx(p, input), "Proof Not Verified");
+
+		if (compareStrings(prizeType, "erc20")) {
+			transferERC20(msg.sender, contractAddress, amount);
+			emit DropUnlocked(
+				lockId,
+				sender,
+				msg.sender,
+				hPass,
+				prizeType,
+				contractAddress,
+				amount,
+				expiry
+			);
+			delete drops[lockId];
+		} else if (compareStrings(prizeType, "erc721")) {
+			transferERC721(msg.sender, contractAddress, amount);
+			emit DropUnlocked(
+				lockId,
+				sender,
+				msg.sender,
+				hPass,
+				prizeType,
+				contractAddress,
+				amount,
+				expiry
+			);
+			delete drops[lockId];
+		} else if (compareStrings(prizeType, "eth")) {
+			transferETH(msg.sender, amount);
+			emit DropUnlocked(
+				lockId,
+				sender,
+				msg.sender,
+				hPass,
+				prizeType,
+				contractAddress,
+				amount,
+				expiry
+			);
+			delete drops[lockId];
+		}
+	}
+
+	function unlockExpiredLock(bytes32 lockId) public {
+		(
+			address sender,
+			bytes32 hPass,
+			string memory prizeType,
+			address contractAddress,
+			uint256 amount,
+			uint256 expiry
+		) = getDropLockById(lockId);
+
+		require(!compareStrings(prizeType, ""), "Drop Doesn't Exist");
+		require(block.timestamp >= expiry, "Lock Has Not Expired Yet");
+		require(msg.sender == sender, "Lock Doesn't Belong To You");
 
 		if (compareStrings(prizeType, "erc20")) {
 			transferERC20(msg.sender, contractAddress, amount);
