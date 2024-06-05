@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { Verifier } from "./zk-verifier/verifier.sol";
+import { Verifier, Pairing } from "./zk-verifier/verifier.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/interfaces/IERC721Receiver.sol";
@@ -18,8 +18,21 @@ contract DropManager is IERC721Receiver {
 		uint256 expiry;
 	}
 
+	struct ProofData {
+		bytes32 a0;
+		bytes32 a1;
+		bytes32 b00;
+		bytes32 b01;
+		bytes32 b10;
+		bytes32 b11;
+		bytes32 c0;
+		bytes32 c1;
+	}
+
 	mapping(bytes32 => Drop) public drops;
 	mapping(address => uint256) public userNonces;
+
+	Verifier public verifier;
 
 	event DropAdded(
 		bytes32 indexed id,
@@ -31,7 +44,20 @@ contract DropManager is IERC721Receiver {
 		uint256 expiry
 	);
 
-	constructor() {}
+	event DropUnlocked(
+		bytes32 indexed id,
+		address indexed sender,
+		address indexed reciever,
+		bytes32 hashedPassword,
+		string prizeType,
+		address contractAddress,
+		uint256 amount,
+		uint256 expiry
+	);
+
+	constructor() {
+		verifier = new Verifier();
+	}
 
 	function getDropLockById(
 		bytes32 id
@@ -177,6 +203,141 @@ contract DropManager is IERC721Receiver {
 		);
 
 		userNonces[msg.sender]++;
+	}
+
+	function compareStrings(
+		string memory a,
+		string memory b
+	) internal pure returns (bool) {
+		return (keccak256(abi.encodePacked((a))) ==
+			keccak256(abi.encodePacked((b))));
+	}
+
+	function convertToUint256Array(
+		address addr1,
+		address addr2,
+		bytes32 b1,
+		bytes32 b2
+	) internal pure returns (uint256[104] memory) {
+		uint256[104] memory result;
+
+		for (uint256 i = 0; i < 20; i++) {
+			result[i] = uint256(uint8(bytes20(addr1)[i]));
+			result[i + 20] = uint256(uint8(bytes20(addr2)[i]));
+		}
+
+		for (uint256 i = 0; i < 32; i++) {
+			result[i + 40] = uint256(uint8(b1[i]));
+			result[i + 72] = uint256(uint8(b2[i]));
+		}
+
+		return result;
+	}
+
+	function transferERC20(
+		address to,
+		address contractAddress,
+		uint256 amount
+	) internal {
+		IERC20 token = IERC20(contractAddress);
+		require(token.transfer(to, amount), "Transfer failed");
+	}
+
+	function transferERC721(
+		address to,
+		address contractAddress,
+		uint256 tokenId
+	) internal {
+		IERC721 token = IERC721(contractAddress);
+		token.safeTransferFrom(address(this), to, tokenId);
+	}
+
+	function transferETH(address to, uint256 amount) internal {
+		(bool success, ) = to.call{ value: amount }("");
+		require(success, "Transfer failed.");
+	}
+
+	function unlockDrop(
+		ProofData memory proof,
+		bytes32 lockId,
+		bytes32 unlockHash
+	) public {
+		(
+			address sender,
+			bytes32 hPass,
+			string memory prizeType,
+			address contractAddress,
+			uint256 amount,
+			uint256 expiry
+		) = getDropLockById(lockId);
+
+		console.log(prizeType);
+
+		require(!compareStrings(prizeType, ""), "Drop Doesn't Exist");
+		require(block.timestamp < expiry, "Lock Has Expired");
+
+		uint[2] memory a = [uint256(proof.a0), uint256(proof.a1)];
+		uint[2][2] memory b = [
+			[uint256(proof.b00), uint256(proof.b01)],
+			[uint256(proof.b10), uint256(proof.b11)]
+		];
+		uint[2] memory c = [uint256(proof.c0), uint256(proof.c1)];
+
+		uint[104] memory input = convertToUint256Array(
+			sender,
+			msg.sender,
+			unlockHash,
+			hPass
+		);
+
+		Verifier.Proof memory p = Verifier.Proof({
+			a: Pairing.G1Point(a[0], a[1]),
+			b: Pairing.G2Point([b[0][0], b[0][1]], [b[1][0], b[1][1]]),
+			c: Pairing.G1Point(c[0], c[1])
+		});
+
+		require(verifier.verifyTx(p, input), "Proof Not Verified");
+
+		if (compareStrings(prizeType, "erc20")) {
+			transferERC20(msg.sender, contractAddress, amount);
+			emit DropUnlocked(
+				lockId,
+				sender,
+				msg.sender,
+				hPass,
+				prizeType,
+				contractAddress,
+				amount,
+				expiry
+			);
+			delete drops[lockId];
+		} else if (compareStrings(prizeType, "erc721")) {
+			transferERC721(msg.sender, contractAddress, amount);
+			emit DropUnlocked(
+				lockId,
+				sender,
+				msg.sender,
+				hPass,
+				prizeType,
+				contractAddress,
+				amount,
+				expiry
+			);
+			delete drops[lockId];
+		} else if (compareStrings(prizeType, "eth")) {
+			transferETH(msg.sender, amount);
+			emit DropUnlocked(
+				lockId,
+				sender,
+				msg.sender,
+				hPass,
+				prizeType,
+				contractAddress,
+				amount,
+				expiry
+			);
+			delete drops[lockId];
+		}
 	}
 
 	function onERC721Received(
