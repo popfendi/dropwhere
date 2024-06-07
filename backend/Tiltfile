@@ -14,5 +14,5 @@ watch_file('pathfinder-api/go.mod')
 watch_file('pathfinder-api/go.sum')
 watch_file('pathfinder-api/*.go')
 
-# Trigger docker-compose down when Tilt stops
+
 docker_compose("./docker-compose.yaml")

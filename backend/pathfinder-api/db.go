@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/lib/pq"
 	_ "github.com/lib/pq"
 )
 
@@ -22,6 +23,39 @@ func initDB() {
 
     if err = db.Ping(); err != nil {
         Sugar.Fatalf("DB ERROR: %s", err.Error())
+    }
+
+    initQuery := `
+    CREATE TABLE IF NOT EXISTS messages (
+        id SERIAL PRIMARY KEY,
+        sender TEXT,
+        text SMALLINT[],
+        latitude FLOAT8,
+        longitude FLOAT8,
+        expires BIGINT,
+        active BOOLEAN
+    );
+
+    CREATE TABLE IF NOT EXISTS prizes (
+        id TEXT PRIMARY KEY,
+        sender TEXT,
+        latitude DOUBLE PRECISION,
+        longitude DOUBLE PRECISION,
+        password TEXT,
+        hashed_password TEXT,
+        type TEXT,
+        contract_address TEXT,
+        name TEXT,
+        symbol TEXT,
+        amount NUMERIC,
+        expires BIGINT,
+        active BOOLEAN
+    );
+    `
+
+    _, err = db.Exec(initQuery)
+    if err != nil {
+        Sugar.Error(err)
     }
 }
 
@@ -66,4 +100,25 @@ func getPrizeLocksWithinRadius(lat, lon, radius float64) ([]Prize, error) {
         }
     }
     return prizes, nil
+}
+
+func insertMessageToDB(msg Message) (int64, error) {
+    msg.Active = true
+    msg.Expires = time.Now().Unix() + 86400
+
+    query := `
+    INSERT INTO messages (sender, text, latitude, longitude, expires, active)
+    VALUES ($1, $2, $3, $4, $5, $6)
+    RETURNING id
+    `
+
+    var id int64
+    err := db.QueryRow(query, msg.Sender, pq.Array(msg.Text), msg.Latitude, msg.Longitude, msg.Expires, msg.Active).Scan(&id)
+    if err != nil {
+        return 0, err
+    }
+
+    msg.ID = id
+    fmt.Printf("Inserted message with ID: %d\n", id)
+    return id, nil
 }

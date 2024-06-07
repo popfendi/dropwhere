@@ -9,6 +9,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/crypto"
+
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
@@ -27,6 +30,16 @@ type Prize struct {
     Amount          *big.Int    `json:"amount"`
     Expires         int64       `json:"expires"`
     Active          bool        `json:"active"`
+}
+
+type Message struct {
+    ID              int64       `json:"id,omitempty"`
+    Sender          string      `json:"sender"`
+    Text            []int8      `json:"text"`
+    Latitude        float64     `json:"latitude"`
+    Longitude       float64     `json:"longitude"`
+    Expires         int64       `json:"expires,omitempty"`
+    Active          bool        `json:"active,omitempty"`
 }
 
 func normalizeAddress(address string) string {
@@ -204,6 +217,78 @@ func storePrizeLockHandler(w http.ResponseWriter, r *http.Request) {
     w.Write([]byte("Prize stored successfully"))
 }
 
+type MessageInput struct {
+    Message     Message     `json:"message"`
+    Signature   string      `json:"signature"`
+}
+
+func getAddressFromSig(msgInput MessageInput) (string, error) {
+    msg := fmt.Sprintf("%s%.1f%.1f", msgInput.Message.Sender, msgInput.Message.Latitude, msgInput.Message.Longitude)
+
+    fmt.Println(msg)
+
+    prefixedHash := crypto.Keccak256([]byte(fmt.Sprintf("\x19Ethereum Signed Message:\n%v", len(msg))), []byte(msg))
+
+    signature := hexutil.MustDecode(msgInput.Signature)
+
+    // transform yellow paper V from 27/28 to 0/1 (aka not sure what I'm doing but just works don't question it)
+    if signature[crypto.RecoveryIDOffset] == 27 || signature[crypto.RecoveryIDOffset] == 28 {
+        signature[crypto.RecoveryIDOffset] -= 27
+    }
+
+    sigPublicKey, err := crypto.Ecrecover(prefixedHash, signature)
+    if err != nil {
+        return "", err
+    }
+
+    recoveredKey, err := crypto.UnmarshalPubkey(sigPublicKey)
+    if err != nil {
+        return "", err
+    }
+
+    recoveredAddress := crypto.PubkeyToAddress(*recoveredKey)
+
+    return strings.ToLower(recoveredAddress.Hex()), nil
+}
+
+func storeMessageHandler(w http.ResponseWriter, r *http.Request) {
+    var msgInput MessageInput
+    if err := json.NewDecoder(r.Body).Decode(&msgInput); err != nil {
+        http.Error(w, "Invalid request payload", http.StatusBadRequest)
+        Sugar.Error(err)
+        return
+    }
+    
+    if msgInput.Signature == "" {
+        http.Error(w, "Signature can't be empty", http.StatusBadRequest)
+        return
+    }
+    senderAddress, err := getAddressFromSig(msgInput)
+    if err != nil {
+        http.Error(w, "Invalid signature", http.StatusBadRequest)
+        Sugar.Error(err)
+        return
+    }
+
+    if strings.ToLower(msgInput.Message.Sender) != senderAddress {
+        http.Error(w, "Signature must be signed by sender", http.StatusBadRequest)
+        Sugar.Error(err)
+        return
+    }
+
+    msgInput.Message.Sender = senderAddress
+
+    id, err := insertMessageToDB(msgInput.Message)
+    if err != nil {
+        http.Error(w, "Insert Message error", http.StatusInternalServerError)
+        Sugar.Error(err)
+        return
+    }
+
+    w.WriteHeader(http.StatusCreated)
+    w.Write([]byte(fmt.Sprintf("id: %d", id)))
+}
+
 func main() {
     initLogger()
     initDB()
@@ -212,6 +297,7 @@ func main() {
     r := mux.NewRouter()
     r.HandleFunc("/delta", getDelta).Methods("POST")
     r.HandleFunc("/prizes", storePrizeLockHandler).Methods("POST")
+    r.HandleFunc("/messages", storeMessageHandler).Methods("POST")
 
 	headersOk := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type"})
 	originsOk := handlers.AllowedOrigins([]string{allowedHost})
