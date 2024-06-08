@@ -225,8 +225,6 @@ type MessageInput struct {
 func getAddressFromSig(msgInput MessageInput) (string, error) {
     msg := fmt.Sprintf("%s%.1f%.1f", msgInput.Message.Sender, msgInput.Message.Latitude, msgInput.Message.Longitude)
 
-    fmt.Println(msg)
-
     prefixedHash := crypto.Keccak256([]byte(fmt.Sprintf("\x19Ethereum Signed Message:\n%v", len(msg))), []byte(msg))
 
     signature := hexutil.MustDecode(msgInput.Signature)
