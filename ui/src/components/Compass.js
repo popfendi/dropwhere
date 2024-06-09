@@ -8,6 +8,8 @@ const Compass = (props) => {
   const { alpha, dir } = useDeviceOrientation();
   const { position, error } = useGeolocation();
   const [deltas, setDeltas] = useState([]);
+  const [veryCloseDeltas, setVeryCloseDeltas] = useState([]);
+  const [isClose, setIsClose] = useState(false);
 
   useEffect(() => {
     const fetchDeltas = async () => {
@@ -92,6 +94,13 @@ const Compass = (props) => {
               amount: 1000000000,
               type: "erc20",
             },
+            {
+              id: "8",
+              direction: -230.760248531080874,
+              proximity: "<250m",
+              text: [1, 1],
+              type: "message",
+            },
           ]);
         }
       }
@@ -166,6 +175,13 @@ const Compass = (props) => {
         name: "test",
         amount: 1000000000,
         type: "erc20",
+      },
+      {
+        id: "8",
+        direction: -230.760248531080874,
+        proximity: "<250m",
+        text: [1, 1],
+        type: "message",
       },
     ]);
   }, []);
@@ -253,10 +269,84 @@ const Compass = (props) => {
     };
   };
 
+  const messageStyle = (delta) => {
+    var obj = getPrizeStyleData(delta);
+    return {
+      position: "absolute",
+      top: "50%",
+      left: "50%",
+      borderRadius: "50%",
+      width: obj.size - 15,
+      height: obj.size - 15,
+      padding: 10,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      transform: `rotate(${delta.direction}deg) translate(0, -${obj.offset - 15}px) rotate(${-delta.direction}deg)`, // Adjust the position to the edge
+      transformOrigin: "center center",
+      backgroundColor: "rgba(61, 59, 89, 0.8)",
+    };
+  };
+
   const prizeTextStyle = (direction) => ({
     transform: `rotate(${direction}deg)`,
     fontSize: 10,
   });
+
+  const messageTextStyle = (direction) => ({
+    transform: `rotate(${direction}deg)`,
+    fontSize: 20,
+  });
+
+  useEffect(() => {
+    let close = false;
+    const veryClose = [];
+
+    deltas.forEach((delta) => {
+      if (delta.proximity === "<100m") {
+        close = true;
+      }
+      if (delta.proximity === "<10m") {
+        veryClose.push(delta);
+      }
+    });
+
+    if (close !== isClose) {
+      setIsClose(close);
+    }
+
+    setVeryCloseDeltas(veryClose);
+  }, [deltas, isClose, veryCloseDeltas]);
+
+  const mapDeltas = deltas.map((delta) => {
+    if (delta.proximity === "<100m" || delta.proximity === "<10m") {
+      return null;
+    } else {
+      return delta.type === "message" ? (
+        <div className="radar-icon" key={delta.id} style={messageStyle(delta)}>
+          <div style={messageTextStyle(delta.direction)}>✉️</div>
+        </div>
+      ) : (
+        <div className="radar-icon" key={delta.id} style={prizeStyle(delta)}>
+          <div style={prizeTextStyle(delta.direction)}>
+            {delta[props.display]}
+          </div>
+        </div>
+      );
+    }
+  });
+
+  const handleRadarClick = () => {
+    if (isClose && veryCloseDeltas.length == 0) {
+      alert("You're close! keep searching the area 👀");
+    }
+    if (isClose && veryCloseDeltas.length > 0) {
+      // do TX logic
+    } else {
+      return;
+    }
+  };
 
   /*
   if (error) {
@@ -273,20 +363,12 @@ const Compass = (props) => {
         height: "95vh",
       }}
     >
-      <div className="radar-container" style={compassStyle}>
-        <div className="radar-div">
-          {deltas.map((delta) => (
-            <div
-              className="radar-icon"
-              key={delta.id}
-              style={prizeStyle(delta)}
-            >
-              <div style={prizeTextStyle(delta.direction)}>
-                {delta[props.display]}
-              </div>
-            </div>
-          ))}
-        </div>
+      <div
+        className="radar-container"
+        onClick={handleRadarClick}
+        style={compassStyle}
+      >
+        <div className="radar-div">{mapDeltas}</div>
         <p
           style={{
             color: "#48435C",
@@ -296,9 +378,12 @@ const Compass = (props) => {
             maxWidth: "30px",
             textAlign: "center",
             transform: `rotate(${-alpha}deg)`,
+            animation: isClose
+              ? `grow 2.5s ease-in-out 0s alternate infinite`
+              : null,
           }}
         >
-          {dir}
+          {isClose ? "❔" : dir}
         </p>
         <div className="pulseLoader"></div>
       </div>

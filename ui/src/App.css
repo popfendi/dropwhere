@@ -72,6 +72,15 @@ html {
   }
 }
 
+@keyframes grow {
+  0% {
+    scale: 1;
+  }
+  100% {
+    scale: 2;
+  }
+}
+
 .pulseLoader {
   width: 100%;
   height: 100%;
