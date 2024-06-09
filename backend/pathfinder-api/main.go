@@ -105,6 +105,8 @@ func filterPrizeDeltas(userLocation UserLocation, prizes []Prize) []Delta{
         distance, direction := getDistanceAndDirection(userLocation.Latitude, userLocation.Longitude, prize.Latitude, prize.Longitude)
         proximity := "10km"
         switch true {
+        case distance <= 0.01:
+            proximity = "<10m"
         case distance <= 0.1:
             proximity = "<100m"
         case distance <= 0.25:
@@ -161,6 +163,8 @@ func filterMessages(userLocation UserLocation, messages []Message) []Delta{
         distance, direction := getDistanceAndDirection(userLocation.Latitude, userLocation.Longitude, message.Latitude, message.Longitude)
         proximity := "10km"
         switch true {
+        case distance <= 0.01:
+            proximity = "<10m"
         case distance <= 0.1:
             proximity = "<100m"
         case distance <= 0.25:
