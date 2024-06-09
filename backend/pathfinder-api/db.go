@@ -70,6 +70,17 @@ func insertPrizeLockToDB(prize Prize) error {
     return err
 }
 
+func updatePrizeLockFields(pType, sender, id string, amount *big.Int, active bool) error {
+    query := `
+    UPDATE prizes
+    SET type = $1, amount = $2, sender = $3, active = $4
+    WHERE id = $5
+    `
+    amountStr := amount.String()
+    _, err := db.Exec(query, pType, amountStr, sender, active, id)
+    return err
+}
+
 func getPrizeLocksWithinRadius(lat, lon, radius float64) ([]Prize, error) {
     rows, err := db.Query(`
         SELECT id, sender, latitude, longitude, password, hashed_password, type, contract_address, name, symbol, amount, expires, active
@@ -121,4 +132,31 @@ func insertMessageToDB(msg Message) (int64, error) {
     msg.ID = id
     fmt.Printf("Inserted message with ID: %d\n", id)
     return id, nil
+}
+
+func getMessagesWithinRadius(lat, lon, radius float64) ([]Message, error) {
+    rows, err := db.Query(`
+        SELECT id, sender, text, latitude, longitude, expires, active
+        FROM messages
+        WHERE active = TRUE AND expires > $1
+    `, time.Now().Unix())
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
+
+    var messages []Message
+    for rows.Next() {
+        var msg Message
+        if err := rows.Scan(&msg.ID, &msg.Sender, pq.Array(&msg.Text), &msg.Latitude, &msg.Longitude, &msg.Expires, &msg.Active); err != nil {
+            return nil, err
+        }
+
+        distance, _ := haversine(lat, lon, msg.Latitude, msg.Longitude)
+
+        if distance <= radius {
+            messages = append(messages, msg)
+        }
+    }
+    return messages, nil
 }

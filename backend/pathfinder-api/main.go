@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -17,25 +18,25 @@ import (
 )
 
 type Prize struct {
-    ID              string      `json:"id"` // will be keccak256(sender, nonce)
+    ID              string      `json:"id,omitempty"` // will be keccak256(sender, nonce)
     Sender          string      `json:"sender"`
     Latitude        float64     `json:"latitude"`
     Longitude       float64     `json:"longitude"`
-    Password        string      `json:"password"`
-    HashedPassword  string      `json:"hashedPassword"`
+    Password        string      `json:"password,omitempty"`
+    HashedPassword  string      `json:"hashedPassword,omitempty"`
     Type            string      `json:"type"`
     ContractAddress string      `json:"contractAddress"`
-    Name            string      `json:"name"`
-    Symbol          string      `json:"symbol"`
-    Amount          *big.Int    `json:"amount"`
+    Name            string      `json:"name,omitempty"`
+    Symbol          string      `json:"symbol,omitempty"`
+    Amount          *big.Int    `json:"amount,omitempty"`
     Expires         int64       `json:"expires"`
-    Active          bool        `json:"active"`
+    Active          bool        `json:"active,omitempty"`
 }
 
 type Message struct {
     ID              int64       `json:"id,omitempty"`
     Sender          string      `json:"sender"`
-    Text            []int8      `json:"text"`
+    Text            []int16     `json:"text"`
     Latitude        float64     `json:"latitude"`
     Longitude       float64     `json:"longitude"`
     Expires         int64       `json:"expires,omitempty"`
@@ -83,12 +84,13 @@ type Delta struct {
     Direction       float64     `json:"direction"`
     Proximity       string      `json:"proximity"`
     Password        string      `json:"password,omitempty"`
-    HashedPassword  string      `json:"hashedPassword"`
+    Message         []int8      `json:"message,omitempty"`
+    HashedPassword  string      `json:"hashedPassword,omitempty"`
     Type            string      `json:"type"`
     ContractAddress string      `json:"contractAddress"`
-    Name            string      `json:"name"`
-    Symbol          string      `json:"symbol"`
-    Amount          *big.Int    `json:"amount"`
+    Name            string      `json:"name,omitempty"`
+    Symbol          string      `json:"symbol,omitempty"`
+    Amount          *big.Int    `json:"amount,omitempty"`
 } 
 
 type UserLocation struct {
@@ -122,18 +124,7 @@ func filterPrizeDeltas(userLocation UserLocation, prizes []Prize) []Delta{
         }
 
         if isWithinDistance(userLocation.Latitude, userLocation.Longitude, prize.Latitude, prize.Longitude, 0.005) {
-            deltas = append(deltas, struct {
-                ID              string      `json:"id"`
-                Direction       float64     `json:"direction"`
-                Proximity       string      `json:"proximity"`
-                Password        string      `json:"password,omitempty"`
-                HashedPassword  string      `json:"hashedPassword"`
-                Type            string      `json:"type"`
-                ContractAddress string      `json:"contractAddress"`
-                Name            string      `json:"name"`
-                Symbol          string      `json:"symbol"`
-                Amount          *big.Int    `json:"amount"`
-            }{
+            deltas = append(deltas, Delta{
                 ID:        prize.ID,
                 Direction: direction,
                 Proximity: proximity,
@@ -146,18 +137,7 @@ func filterPrizeDeltas(userLocation UserLocation, prizes []Prize) []Delta{
                 Amount: prize.Amount,
             })
         } else {
-            deltas = append(deltas, struct {
-                ID              string      `json:"id"`
-                Direction       float64     `json:"direction"`
-                Proximity       string      `json:"proximity"`
-                Password        string      `json:"password,omitempty"`
-                HashedPassword  string      `json:"hashedPassword"`
-                Type            string      `json:"type"`
-                ContractAddress string      `json:"contractAddress"`
-                Name            string      `json:"name"`
-                Symbol          string      `json:"symbol"`
-                Amount          *big.Int    `json:"amount"`
-            }{
+            deltas = append(deltas, Delta{
                 ID:        prize.ID,
                 Direction: direction,
                 Proximity: proximity,
@@ -174,6 +154,45 @@ func filterPrizeDeltas(userLocation UserLocation, prizes []Prize) []Delta{
     return deltas
 }
 
+func filterMessages(userLocation UserLocation, messages []Message) []Delta{
+    var deltas []Delta
+
+    for _, message := range messages {
+        distance, direction := getDistanceAndDirection(userLocation.Latitude, userLocation.Longitude, message.Latitude, message.Longitude)
+        proximity := "10km"
+        switch true {
+        case distance <= 0.1:
+            proximity = "<100m"
+        case distance <= 0.25:
+            proximity = "<250m"
+        case distance <= 0.5:
+            proximity = "<500m"
+        case distance <= 1:
+            proximity = "<1km"
+        case distance <= 3:
+            proximity = "<3km"
+        case distance <= 5:
+            proximity = "<5km"
+        case distance <= 8:
+            proximity = "<8km"
+        case distance <= 10:
+            proximity = "<10km"
+        }
+
+        deltas = append(deltas, Delta{
+            ID:        strconv.Itoa(int(message.ID)),
+            Direction: direction,
+            Proximity: proximity,
+            Type: "message",
+            ContractAddress: message.Sender,
+        })
+
+    }
+    
+    return deltas
+}
+
+
 func getDelta(w http.ResponseWriter, r *http.Request) {
     var userLocation UserLocation
 
@@ -186,12 +205,23 @@ func getDelta(w http.ResponseWriter, r *http.Request) {
 
     prizes, err := getPrizeLocksWithinRadius(userLocation.Latitude, userLocation.Longitude, 10) // 10km (could be configurable)
     if err != nil {
-        http.Error(w, "Failed to retrieve prizes", http.StatusInternalServerError)
+        http.Error(w, "Failed to retrieve prize deltas", http.StatusInternalServerError)
         Sugar.Error(err)
         return
     }
 
-   deltas := filterPrizeDeltas(userLocation, prizes)
+   prizeDeltas := filterPrizeDeltas(userLocation, prizes)
+
+   messages, err := getMessagesWithinRadius(userLocation.Latitude, userLocation.Longitude, 5) //5km for messages
+    if err != nil {
+        http.Error(w, "Failed to retrieve message deltas", http.StatusInternalServerError)
+        Sugar.Error(err)
+        return
+    }
+
+    messageDeltas := filterMessages(userLocation, messages)
+
+    deltas := append(prizeDeltas, messageDeltas...)
 
     w.Header().Set("Content-Type", "application/json")
     json.NewEncoder(w).Encode(deltas)
@@ -206,6 +236,7 @@ func storePrizeLockHandler(w http.ResponseWriter, r *http.Request) {
     }
 
     prize.normalizePrizeAddresses()
+    prize.Active = false
 
     if err := insertPrizeLockToDB(prize); err != nil {
         http.Error(w, "Failed to store prize", http.StatusInternalServerError)
@@ -290,6 +321,7 @@ func storeMessageHandler(w http.ResponseWriter, r *http.Request) {
 func main() {
     initLogger()
     initDB()
+    initClient()
     port := os.Getenv("SERVER_PORT")
     allowedHost := os.Getenv("ALLOWED_HOST")
     r := mux.NewRouter()
@@ -300,6 +332,9 @@ func main() {
 	headersOk := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type"})
 	originsOk := handlers.AllowedOrigins([]string{allowedHost})
 	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"})
+
+    go listenForLocks()
+    go listenForUnlocks()
 
     Sugar.Infof("Server is running on port %s", port)
     Sugar.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), handlers.CORS(originsOk, headersOk, methodsOk)(r)))
