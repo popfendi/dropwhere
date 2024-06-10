@@ -5,6 +5,10 @@ html {
   width: 100%;
 }
 
+body {
+  background-color: rgb(61, 59, 89);
+}
+
 .App {
   background-color: rgb(61, 59, 89);
   /*background: url("./40.png"), rgb(61, 59, 89);
@@ -13,13 +17,14 @@ html {
   background-size: 100px 100px;*/
   overflow: hidden;
   width: 100%;
+  margin-top: 10px;
 }
 
 .nav-buttons {
   display: flex;
   flex-direction: row;
   justify-content: space-around;
-  width: 100%;
+
   padding: 10px;
 }
 
@@ -109,4 +114,13 @@ html {
     transform: scale(5);
     opacity: 0;
   }
+}
+
+.leaflet-container {
+  width: 500px;
+  height: 200px;
+}
+
+.form-text {
+  color: aliceblue;
 }

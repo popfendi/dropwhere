@@ -2,6 +2,7 @@ import { useState } from "react";
 import "./App.css";
 import Compass from "./components/Compass";
 import { BlueCreateWalletButton } from "./components/CreateWalletButton";
+import Create from "./components/Create";
 
 const displays = ["proximity", "type", "symbol"];
 
@@ -62,7 +63,7 @@ function App() {
         className="overlay"
         style={{ display: page == "radar" ? "inherit" : "none" }}
       ></div>
-      {page == "radar" ? <Compass display={displays[display]} /> : null}
+      {page == "radar" ? <Compass display={displays[display]} /> : <Create />}
     </div>
   );
 }

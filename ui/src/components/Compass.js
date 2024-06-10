@@ -1,4 +1,3 @@
-// src/components/Compass.js
 import React from "react";
 import { useEffect, useState } from "react";
 import useDeviceOrientation from "../hooks/useDeviceOrientation";
