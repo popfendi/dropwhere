@@ -408,24 +408,21 @@ const Compass = (props) => {
         height: "95vh",
       }}
     >
-      <div
-        className="radar-container"
-        onClick={handleRadarClick}
-        style={compassStyle}
-      >
+      <div className="radar-container" style={compassStyle}>
         <div className="radar-div">{mapDeltas}</div>
         <p
+          onClick={handleRadarClick}
           style={{
             color: "#48435C",
             fontSize: 15,
             fontFamily: "Times New Roman",
-            minWidth: "93px",
-            maxWidth: "93px",
-            height: "93px",
+            minWidth: "95px",
+            maxWidth: "95px",
+            height: "95px",
             borderRadius: "50%",
             textAlign: "center",
             transform: `rotate(${-alpha}deg)`,
-            boxShadow: "inset 0 0 10px #48435C",
+            boxShadow: "inset 0 0 30px #48435C",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
