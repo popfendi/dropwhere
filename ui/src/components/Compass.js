@@ -3,6 +3,7 @@ import React from "react";
 import { useEffect, useState } from "react";
 import useDeviceOrientation from "../hooks/useDeviceOrientation";
 import useGeolocation from "../hooks/useGeolocation";
+import MessageRenderer from "./MessageRenderer";
 
 const Compass = (props) => {
   const { alpha, dir } = useDeviceOrientation();
@@ -97,8 +98,9 @@ const Compass = (props) => {
             {
               id: "8",
               direction: -230.760248531080874,
-              proximity: "<250m",
-              text: [1, 1],
+              proximity: "<10m",
+              sender: "0x000000",
+              text: [8, 0, 37],
               type: "message",
             },
           ]);
@@ -106,7 +108,7 @@ const Compass = (props) => {
       }
     };
 
-    const intervalId = setInterval(fetchDeltas, 5000);
+    const intervalId = setInterval(fetchDeltas, 1000);
 
     return () => clearInterval(intervalId);
   }, [position.latitude, position.longitude]);
@@ -179,8 +181,9 @@ const Compass = (props) => {
       {
         id: "8",
         direction: -230.760248531080874,
-        proximity: "<250m",
-        text: [1, 1],
+        sender: "0x000000",
+        proximity: "<10m",
+        text: [8, 0, 37],
         type: "message",
       },
     ]);
@@ -188,9 +191,9 @@ const Compass = (props) => {
 
   const compassStyle = {
     transform: `rotate(${alpha}deg)`,
-    height: "90px",
-    width: "90px",
-    border: "3px solid #9792E3",
+    height: "93px",
+    width: "93px",
+
     backgroundColor: "#9792E3",
     margin: 0,
     padding: 0,
@@ -208,42 +211,42 @@ const Compass = (props) => {
       case "<250m":
         obj.size = 50;
         obj.color = "#61E786";
-        obj.offset = "90";
+        obj.offset = 85;
         break;
       case "<500m":
         obj.size = 40;
         obj.color = "#61E786";
-        obj.offset = "95";
+        obj.offset = 90;
         break;
       case "<1km":
         obj.size = 40;
         obj.color = "#E6AF2E";
-        obj.offset = "100";
+        obj.offset = 95;
         break;
       case "<3km":
         obj.size = 35;
         obj.color = "#E6AF2E";
-        obj.offset = "100";
+        obj.offset = 95;
         break;
       case "<5km":
         obj.size = 35;
         obj.color = "#FF7D00";
-        obj.offset = "115";
+        obj.offset = 110;
         break;
       case "<8km":
         obj.size = 35;
         obj.color = "#FF7D00";
-        obj.offset = "155";
+        obj.offset = 150;
         break;
       case "<10km":
         obj.size = 30;
         obj.color = "#BD1E1E";
-        obj.offset = "175";
+        obj.offset = 170;
         break;
       case "10km":
         obj.size = 25;
         obj.color = "#BD1E1E";
-        obj.offset = "181";
+        obj.offset = 175;
         break;
     }
     return obj;
@@ -283,7 +286,7 @@ const Compass = (props) => {
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      transform: `rotate(${delta.direction}deg) translate(0, -${obj.offset - 15}px) rotate(${-delta.direction}deg)`, // Adjust the position to the edge
+      transform: `rotate(${delta.direction}deg) translate(0, -${obj.offset + 15}px) rotate(${-delta.direction}deg)`, // Adjust the position to the edge
       transformOrigin: "center center",
       backgroundColor: "rgba(61, 59, 89, 0.8)",
     };
@@ -308,6 +311,7 @@ const Compass = (props) => {
         close = true;
       }
       if (delta.proximity === "<10m") {
+        close = true;
         veryClose.push(delta);
       }
     });
@@ -342,9 +346,50 @@ const Compass = (props) => {
       alert("You're close! keep searching the area 👀");
     }
     if (isClose && veryCloseDeltas.length > 0) {
-      // do TX logic
+      if (veryCloseDeltas[0]["type"] == "message") {
+        alert(`Message Left by: ${veryCloseDeltas[0]["sender"]}`);
+      }
     } else {
       return;
+    }
+  };
+
+  const isCloseIconHandler = () => {
+    if (isClose && veryCloseDeltas.length == 0) {
+      return (
+        <p
+          style={{
+            fontFamily: '"Tiny5", sans-serif',
+            textAlign: "center",
+            fontSize: 50,
+            padding: 0,
+            margin: 0,
+          }}
+        >
+          ❔
+        </p>
+      );
+    }
+    if (
+      isClose &&
+      veryCloseDeltas.length > 0 &&
+      veryCloseDeltas[0]["type"] == "message"
+    ) {
+      return <MessageRenderer indices={veryCloseDeltas[0]["text"]} />;
+    } else {
+      return (
+        <p
+          style={{
+            fontFamily: '"Tiny5", sans-serif',
+            textAlign: "center",
+            fontSize: 50,
+            padding: 0,
+            margin: 0,
+          }}
+        >
+          ⛏️
+        </p>
+      );
     }
   };
 
@@ -374,16 +419,19 @@ const Compass = (props) => {
             color: "#48435C",
             fontSize: 15,
             fontFamily: "Times New Roman",
-            minWidth: "30px",
-            maxWidth: "30px",
+            minWidth: "93px",
+            maxWidth: "93px",
+            height: "93px",
+            borderRadius: "50%",
             textAlign: "center",
             transform: `rotate(${-alpha}deg)`,
-            animation: isClose
-              ? `grow 2.5s ease-in-out 0s alternate infinite`
-              : null,
+            boxShadow: "inset 0 0 10px #48435C",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
-          {isClose ? "❔" : dir}
+          {isClose ? isCloseIconHandler() : dir}
         </p>
         <div className="pulseLoader"></div>
       </div>

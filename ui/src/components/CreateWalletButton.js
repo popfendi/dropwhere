@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { CoinbaseWalletSDK } from "@coinbase/wallet-sdk";
 import { CoinbaseWalletLogo } from "./CoinbaseWalletLogo";
 
@@ -21,20 +21,25 @@ const buttonStyles = {
 };
 
 const sdk = new CoinbaseWalletSDK({
-  appName: "My Dapp",
-  appLogoUrl: "https://example.com/logo.png",
+  appName: "dropwhere",
+  appLogoUrl: "https://i.ibb.co/pxCGggP/dwlogo.png",
   appChainIds: [84532],
 });
 
 const provider = sdk.makeWeb3Provider();
 
+const formatAddress = (address) => {
+  return address.slice(0, 10).concat("...");
+};
+
 export function BlueCreateWalletButton({ handleSuccess, handleError }) {
+  const [buttonText, setButtonText] = useState("Create Wallet");
   const createWallet = useCallback(async () => {
     try {
       const [address] = await provider.request({
         method: "eth_requestAccounts",
       });
-      alert(address);
+      setButtonText(formatAddress(address));
     } catch (error) {
       alert(error);
     }
@@ -43,7 +48,7 @@ export function BlueCreateWalletButton({ handleSuccess, handleError }) {
   return (
     <button style={buttonStyles} onClick={createWallet}>
       <CoinbaseWalletLogo />
-      Create Wallet
+      {buttonText}
     </button>
   );
 }
