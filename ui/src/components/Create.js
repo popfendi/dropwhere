@@ -1,6 +1,7 @@
 import React from "react";
 import { useState, useRef, useMemo } from "react";
 import { MapContainer, TileLayer, Marker } from "react-leaflet";
+import MessageBuilder from "./MessageBuilder";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import icon from "leaflet/dist/images/marker-icon.png";
@@ -18,9 +19,12 @@ let DefaultIcon = L.icon({
 
 L.Marker.prototype.options.icon = DefaultIcon;
 
-const Create = (props) => {
+const Create = () => {
   const [position, setPosition] = useState(center);
+  const [tab, setTab] = useState("message");
+  const [messageIndices, setMessageIndices] = useState([0, 0, 0]);
   const markerRef = useRef(null);
+
   const eventHandlers = useMemo(
     () => ({
       dragend() {
@@ -32,6 +36,37 @@ const Create = (props) => {
     }),
     [],
   );
+
+  const handleTab = () => {
+    if (tab == "message") {
+      return (
+        <>
+          <MessageBuilder onMessageConstructed={handleMessageConstructed} />
+          <button
+            style={{ margin: 20 }}
+            className="button-style"
+            onClick={handleMessageDrop}
+          >
+            Drop Message
+          </button>
+        </>
+      );
+    } else if (tab == "token") {
+      return;
+    } else if (tab == "nft") {
+      return;
+    } else if (tab == "eth") {
+      return;
+    }
+  };
+
+  const handleMessageConstructed = (indices) => {
+    setMessageIndices(indices);
+  };
+
+  const handleMessageDrop = () => {
+    //handle message logic
+  };
 
   return (
     <div
@@ -58,6 +93,33 @@ const Create = (props) => {
           ></Marker>
         </MapContainer>
       </div>
+      <div className="drop-selector">
+        <button
+          className={tab == "message" ? "active-drop" : null}
+          onClick={() => setTab("message")}
+        >
+          Message
+        </button>
+        <button
+          className={tab == "token" ? "active-drop" : null}
+          onClick={() => setTab("token")}
+        >
+          Token
+        </button>
+        <button
+          className={tab == "nft" ? "active-drop" : null}
+          onClick={() => setTab("nft")}
+        >
+          NFT
+        </button>
+        <button
+          className={tab == "eth" ? "active-drop" : null}
+          onClick={() => setTab("eth")}
+        >
+          ETH
+        </button>
+      </div>
+      {handleTab()}
     </div>
   );
 };

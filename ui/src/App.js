@@ -6,25 +6,6 @@ import Create from "./components/Create";
 
 const displays = ["proximity", "type", "symbol"];
 
-const buttonStyles = {
-  background: "transparent",
-  border: "1px solid transparent",
-  boxSizing: "border-box",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: 100,
-  fontFamily: "Arial, sans-serif",
-  fontWeight: "bold",
-  fontSize: 18,
-  backgroundColor: "#9792E3",
-  paddingLeft: 30,
-  paddingRight: 30,
-  borderRadius: 10,
-  cursor: "pointer",
-  textAlign: "center",
-};
-
 function App() {
   const [display, setDisplay] = useState(0);
   const [page, setPage] = useState("radar");
@@ -48,7 +29,7 @@ function App() {
     <div className="App">
       <div className="nav-buttons">
         <BlueCreateWalletButton />
-        <button style={buttonStyles} onClick={togglePage}>
+        <button className="button-style" onClick={togglePage}>
           {page == "radar" ? "Create" : "Radar"}
         </button>
       </div>

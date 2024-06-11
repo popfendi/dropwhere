@@ -28,6 +28,30 @@ body {
   padding: 10px;
 }
 
+.button-style {
+  background: transparent;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 100px;
+  min-height: 40px;
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+  font-size: 18px;
+  background-color: #9792e3;
+  padding-left: 30px;
+  padding-right: 30px;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.button-style:hover {
+  background-color: #827dc4;
+}
+
 .info-button {
   position: absolute;
   border-radius: 50%;
@@ -123,4 +147,48 @@ body {
 
 .form-text {
   color: aliceblue;
+}
+
+.drop-selector {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 100px;
+  min-height: 40px;
+  background-color: #9792e3;
+  border-radius: 10px;
+  text-align: center;
+  margin: 20px;
+}
+
+.drop-selector button {
+  background: transparent;
+  border: 0px;
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.active-drop {
+  background-color: #7e7abb !important;
+}
+
+.message-builder-container {
+  display: flex;
+  flex-direction: column;
+  color: aliceblue;
+  align-items: center;
+  justify-content: center;
+}
+
+.message-builder-container select {
+  background-color: #9792e3;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 10px;
+  margin: 10px;
+  font-family: monospace;
 }

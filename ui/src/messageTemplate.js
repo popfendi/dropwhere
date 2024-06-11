@@ -30,7 +30,7 @@ export const messageTemplate = {
     0: [
       "Enemy",
       "Tough enemy",
-      "Critical foe",
+      "Bar Maiden",
       "Monstrosity",
       "Beast",
       "Dwarf",
@@ -84,7 +84,7 @@ export const messageTemplate = {
       "Quite something",
       "Rubbish",
       "Filth",
-      "Weapon",
+      "A pint",
       "Shield",
       "Projectile",
       "Armour",
