@@ -103,8 +103,8 @@ app.post("/generate-proof", ensureInitialized, (req, res) => {
     const formattedProof = zokratesProvider.utils.formatProof(proof);
 
     res.json({ proof: formattedProof[0] });
-  } catch (error) {
-    res.status(500).send(`Error: ${error.message}`);
+  } catch {
+    res.status(500).send(`{"error": "Incorrect inputs, or assertions failed"}`);
   }
 });
 
