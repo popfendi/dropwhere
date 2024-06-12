@@ -1,347 +1,119 @@
 import { initialize } from "zokrates-js";
+import express from "express";
+import bodyParser from "body-parser";
 
-const inputs = [
-  [
-    "59",
-    "82",
-    "184",
-    "33",
-    "61",
-    "206",
-    "41",
-    "212",
-    "0",
-    "24",
-    "199",
-    "106",
-    "251",
-    "25",
-    "239",
-    "75",
-    "105",
-    "89",
-    "238",
-    "44",
-    "84",
-    "168",
-    "213",
-    "80",
-    "101",
-    "109",
-    "167",
-    "198",
-    "74",
-    "43",
-    "203",
-    "107",
-  ],
-  [
-    "10",
-    "46",
-    "66",
-    "27",
-    "35",
-    "10",
-    "180",
-    "115",
-    "97",
-    "157",
-    "158",
-    "43",
-    "75",
-    "79",
-    "187",
-    "193",
-    "226",
-    "194",
-    "197",
-    "211",
-  ],
-  [
-    "36",
-    "101",
-    "243",
-    "111",
-    "12",
-    "249",
-    "77",
-    "75",
-    "234",
-    "119",
-    "166",
-    "241",
-    "215",
-    "117",
-    "152",
-    "66",
-    "116",
-    "70",
-    "30",
-    "54",
-  ],
-  [
-    "246",
-    "130",
-    "40",
-    "143",
-    "177",
-    "237",
-    "14",
-    "242",
-    "46",
-    "198",
-    "45",
-    "251",
-    "187",
-    "210",
-    "54",
-    "81",
-    "197",
-    "111",
-    "247",
-    "179",
-    "13",
-    "86",
-    "189",
-    "88",
-    "79",
-    "206",
-    "209",
-    "192",
-    "168",
-    "14",
-    "143",
-    "228",
-  ],
-  [
-    "249",
-    "176",
-    "131",
-    "59",
-    "206",
-    "211",
-    "167",
-    "168",
-    "32",
-    "80",
-    "219",
-    "122",
-    "233",
-    "143",
-    "124",
-    "128",
-    "125",
-    "93",
-    "186",
-    "1",
-    "61",
-    "121",
-    "163",
-    "164",
-    "90",
-    "206",
-    "182",
-    "243",
-    "118",
-    "138",
-    "171",
-    "24",
-  ],
-];
+const app = express();
+app.use(bodyParser.json());
 
-const inputs2 = [
-  [
-    "155",
-    "141",
-    "126",
-    "51",
-    "156",
-    "89",
-    "151",
-    "125",
-    "56",
-    "129",
-    "143",
-    "47",
-    "224",
-    "100",
-    "156",
-    "210",
-    "68",
-    "195",
-    "230",
-    "131",
-    "159",
-    "206",
-    "225",
-    "26",
-    "210",
-    "160",
-    "254",
-    "214",
-    "204",
-    "80",
-    "24",
-    "172",
-  ],
-  [
-    "10",
-    "46",
-    "66",
-    "27",
-    "35",
-    "10",
-    "180",
-    "115",
-    "97",
-    "157",
-    "158",
-    "43",
-    "75",
-    "79",
-    "187",
-    "193",
-    "226",
-    "194",
-    "197",
-    "211",
-  ],
-  [
-    "36",
-    "101",
-    "243",
-    "111",
-    "12",
-    "249",
-    "77",
-    "75",
-    "234",
-    "119",
-    "166",
-    "241",
-    "215",
-    "117",
-    "152",
-    "66",
-    "116",
-    "70",
-    "30",
-    "54",
-  ],
-  [
-    "184",
-    "158",
-    "2",
-    "72",
-    "93",
-    "160",
-    "14",
-    "108",
-    "100",
-    "163",
-    "175",
-    "178",
-    "244",
-    "196",
-    "31",
-    "25",
-    "232",
-    "80",
-    "92",
-    "27",
-    "207",
-    "94",
-    "123",
-    "18",
-    "137",
-    "7",
-    "161",
-    "59",
-    "116",
-    "28",
-    "84",
-    "133",
-  ],
-  [
-    "249",
-    "176",
-    "131",
-    "59",
-    "206",
-    "211",
-    "167",
-    "168",
-    "32",
-    "80",
-    "219",
-    "122",
-    "233",
-    "143",
-    "124",
-    "128",
-    "125",
-    "93",
-    "186",
-    "1",
-    "61",
-    "121",
-    "163",
-    "164",
-    "90",
-    "206",
-    "182",
-    "243",
-    "118",
-    "138",
-    "171",
-    "24",
-  ],
-];
+let zokratesProvider;
+let artifacts;
+let keypair;
 
-initialize().then((zokratesProvider) => {
+function hexStringToByteArray(hexString) {
+  if (hexString.startsWith("0x")) {
+    hexString = hexString.slice(2);
+  }
+  if (hexString.length % 2 !== 0) {
+    hexString = "0" + hexString;
+  }
+  const byteArray = [];
+  for (let i = 0; i < hexString.length; i += 2) {
+    byteArray.push(String(parseInt(hexString.substr(i, 2), 16)));
+  }
+  return byteArray;
+}
+
+function buildInputs(
+  passwordHex,
+  lockerAddressHex,
+  unlockerAddressHex,
+  lockHashHex,
+) {
+  const password = hexStringToByteArray(passwordHex);
+  const locker = hexStringToByteArray(lockerAddressHex);
+  const unlocker = hexStringToByteArray(unlockerAddressHex);
+  const lockHash = hexStringToByteArray(lockHashHex);
+
+  if (password.length !== 32) throw new Error("Password must be 32 bytes");
+  if (locker.length !== 20) throw new Error("Locker address must be 20 bytes");
+  if (unlocker.length !== 20)
+    throw new Error("Unlocker address must be 20 bytes");
+  if (lockHash.length !== 32) throw new Error("Lock hash must be 32 bytes");
+
+  return [password, locker, unlocker, lockHash];
+}
+
+async function initializeZokrates() {
+  zokratesProvider = await initialize();
+
   const source = `
-    import "hashes/keccak/256bit" as keccak256;
-    def main(private u8[32] password, u8[20] locker, u8[20] unlocker, u8[32] unlockHash, u8[32] lockHash) {
-    u8[52] f = [...password, ...locker];
-    u8[52] s = [...password, ...unlocker];
-
-    u8[32] newLockHash = keccak256(f);
-    u8[32] newUnlockHash = keccak256(s);
-
-    bool firstPass = lockHash == newLockHash;
-    bool secondPass = unlockHash == newUnlockHash;
-
-    assert(firstPass);
-    assert(secondPass);
-}`;
-
-  // compilation
-  const artifacts = zokratesProvider.compile(source);
-
+  import "hashes/keccak/256bit" as keccak256;
+  def main(private u8[32] password, u8[20] locker, u8[20] unlocker, u8[32] lockHash) {
+      u8[52] f = [...password, ...locker];
+      u8[32] newLockHash = keccak256(f);
+      assert(lockHash == newLockHash);
+      assert(unlocker != locker);
+  }`;
+  console.log("compiling...");
+  artifacts = zokratesProvider.compile(source);
   console.log("compiled");
+  console.log("setting up...");
+  keypair = zokratesProvider.setup(artifacts.program);
+  console.log("setup success.");
+}
 
-  // run setup
-  const keypair = zokratesProvider.setup(artifacts.program);
+function ensureInitialized(req, res, next) {
+  if (zokratesProvider && artifacts && keypair) {
+    next();
+  } else {
+    res.status(503).send("Service Unavailable: Zokrates is not initialized.");
+  }
+}
 
-  console.log("setup");
+app.post("/generate-proof", ensureInitialized, (req, res) => {
+  const { passwordHex, lockerAddressHex, unlockerAddressHex, lockHashHex } =
+    req.body;
 
-  // computation
-  const { witness, output } = zokratesProvider.computeWitness(
-    artifacts,
-    inputs2,
+  if (
+    !passwordHex ||
+    !lockerAddressHex ||
+    !unlockerAddressHex ||
+    !lockHashHex
+  ) {
+    return res.status(400).send("Missing required fields");
+  }
+  const inputs = buildInputs(
+    passwordHex,
+    lockerAddressHex,
+    unlockerAddressHex,
+    lockHashHex,
   );
 
-  console.log(output);
+  try {
+    const { witness, output } = zokratesProvider.computeWitness(
+      artifacts,
+      inputs,
+    );
 
-  // generate proof
-  const proof = zokratesProvider.generateProof(
-    artifacts.program,
-    witness,
-    keypair.pk,
-  );
+    const proof = zokratesProvider.generateProof(
+      artifacts.program,
+      witness,
+      keypair.pk,
+    );
+    const formattedProof = zokratesProvider.utils.formatProof(proof);
 
-  var p = zokratesProvider.utils.formatProof(proof);
-
-  var res = JSON.stringify(proof);
-  console.log(res);
+    res.json({ proof: formattedProof[0] });
+  } catch (error) {
+    res.status(500).send(`Error: ${error.message}`);
+  }
 });
+
+initializeZokrates()
+  .then(() => {
+    app.listen(8888, () => {
+      console.log("Server is running on port 8888");
+    });
+  })
+  .catch((error) => {
+    console.error("Initialization failed:", error);
+  });
