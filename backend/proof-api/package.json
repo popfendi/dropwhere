@@ -1,0 +1,15 @@
+{
+  "name": "proof-api",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "zokrates-js": "^1.1.9"
+  }
+}
