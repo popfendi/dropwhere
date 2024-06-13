@@ -216,10 +216,9 @@ contract DropManager is IERC721Receiver {
 	function convertToUint256Array(
 		address addr1,
 		address addr2,
-		bytes32 b1,
-		bytes32 b2
-	) internal pure returns (uint256[104] memory) {
-		uint256[104] memory result;
+		bytes32 b1
+	) internal pure returns (uint256[72] memory) {
+		uint256[72] memory result;
 
 		for (uint256 i = 0; i < 20; i++) {
 			result[i] = uint256(uint8(bytes20(addr1)[i]));
@@ -228,7 +227,6 @@ contract DropManager is IERC721Receiver {
 
 		for (uint256 i = 0; i < 32; i++) {
 			result[i + 40] = uint256(uint8(b1[i]));
-			result[i + 72] = uint256(uint8(b2[i]));
 		}
 
 		return result;
@@ -257,11 +255,7 @@ contract DropManager is IERC721Receiver {
 		require(success, "Transfer failed.");
 	}
 
-	function unlockDrop(
-		ProofData memory proof,
-		bytes32 lockId,
-		bytes32 unlockHash
-	) public {
+	function unlockDrop(ProofData memory proof, bytes32 lockId) public {
 		(
 			address sender,
 			bytes32 hPass,
@@ -281,10 +275,9 @@ contract DropManager is IERC721Receiver {
 		];
 		uint[2] memory c = [uint256(proof.c0), uint256(proof.c1)];
 
-		uint[104] memory input = convertToUint256Array(
-			sender,
+		uint[72] memory input = convertToUint256Array(
+			sender, // locker
 			msg.sender,
-			unlockHash,
 			hPass
 		);
 

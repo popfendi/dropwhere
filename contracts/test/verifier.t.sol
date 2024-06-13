@@ -14,10 +14,9 @@ contract VerifierTest is Test {
 	function convertToUint256Array(
 		address addr1,
 		address addr2,
-		bytes32 b1,
-		bytes32 b2
-	) public pure returns (uint256[104] memory) {
-		uint256[104] memory result;
+		bytes32 b1
+	) public pure returns (uint256[72] memory) {
+		uint256[72] memory result;
 
 		for (uint256 i = 0; i < 20; i++) {
 			result[i] = uint256(uint8(bytes20(addr1)[i]));
@@ -26,7 +25,6 @@ contract VerifierTest is Test {
 
 		for (uint256 i = 0; i < 32; i++) {
 			result[i + 40] = uint256(uint8(b1[i]));
-			result[i + 72] = uint256(uint8(b2[i]));
 		}
 
 		return result;
@@ -37,47 +35,45 @@ contract VerifierTest is Test {
 		address unlocker = 0x2465F36F0Cf94d4bea77A6f1D775984274461e36;
 		bytes32 passHash = keccak256("password111");
 		bytes32 lockHash = keccak256(abi.encodePacked(passHash, locker));
-		bytes32 unlockHash = keccak256(abi.encodePacked(passHash, unlocker));
 
 		uint[2] memory a = [
 			uint256(
-				0x2d6cf7f6b5d48172314a9709397f56dbc44310b9b656bd68591dcf6a3d2032e5
+				0x2eb10190f4d0b075e7cfb627a74e5a57f3603822998deebb8887a71db55fcc31
 			),
 			uint256(
-				0x159632bb7825ddcab8e1bc40835bc8beb1f3f54c6cf1266f84b7061e396cad8d
+				0x2ad948b436acffa75d415f1d91d39cddddcdcb2272f568aaa415a88f9e954d5f
 			)
 		];
 		uint[2][2] memory b = [
 			[
 				uint256(
-					0x2e269c207af3d448150e0703997a4818c48455dc8f1265b49f66e496fa09259b
+					0x2b10e7cd1df73f04323e66a2f8c85b8f54c79f755df3e9806126793f0e30e01e
 				),
 				uint256(
-					0x0e6b77d03d593c70b764c82133f126f0d70619a25555b5bcff7f95a672f7f182
+					0x2555aa5600af3301c0dc687ab657b295fabbd20a231fcf9b122ebc4b6780a29f
 				)
 			],
 			[
 				uint256(
-					0x1a51b47b3b02743fc7886a128a6a028569dc530351b50990ac7c8f6a9c3c1e49
+					0x11503786b34bbbc71a10f8c6f291ec37dd0c6b25035a68796601e46c00e75563
 				),
 				uint256(
-					0x00478978e76b8ce2d49017421c720ddbc0e6fa44f62de29c6acf9ae17fe64f60
+					0x0bd08799c7ed78f241aa4dc2ec144be65c9a05f1788ee8ee4ff23c990c03e31e
 				)
 			]
 		];
 		uint[2] memory c = [
 			uint256(
-				0x116803c0fc3084a4098b745e5c61bed686d05a1c831f0082b8add58045307fbf
+				0x0e863b32d3b7a69ba9d63cb0927d448ee70d6f099ef59c881f78a602a486ed8e
 			),
 			uint256(
-				0x108e848c35b7bfa27263d51ab227e72afc2d1484d69600b938337f2986403e41
+				0x116a86a05c12029cef3dbbc805819cc1577487137526d9d0876c46527005a3b3
 			)
 		];
 
-		uint[104] memory input = convertToUint256Array(
+		uint[72] memory input = convertToUint256Array(
 			locker,
 			unlocker,
-			unlockHash,
 			lockHash
 		);
 
@@ -92,55 +88,52 @@ contract VerifierTest is Test {
 		assertTrue(result);
 	}
 
+	// If assertion inside circuit fails a proof won't be generated
+
 	function testVerifyTxFail() public {
-		address locker = 0x0a2E421B230AB473619D9E2B4b4fBbC1e2c2C5d3;
+		address locker = 0x0A2e421B230aB473619D9e2b4B4fBBc1e2C2C5D4; // trying with different address
 		address unlocker = 0x2465F36F0Cf94d4bea77A6f1D775984274461e36;
 		bytes32 passHash = keccak256("password111");
-		bytes32 wrongPassHash = keccak256("wrongPassWord");
 		bytes32 lockHash = keccak256(abi.encodePacked(passHash, locker));
-		bytes32 unlockHash = keccak256(
-			abi.encodePacked(wrongPassHash, unlocker)
-		);
 
 		uint[2] memory a = [
 			uint256(
-				0x2c42fb40f85226fec44ee8efb597597f7ad1e6e5a36c52d5b89882dcea6b6a15
+				0x2eb10190f4d0b075e7cfb627a74e5a57f3603822998deebb8887a71db55fcc31
 			),
 			uint256(
-				0x04a79388ab867f55c02c511b15720fc4f75f3086cc2d89d8fe5561bd4ce9cbf9
+				0x2ad948b436acffa75d415f1d91d39cddddcdcb2272f568aaa415a88f9e954d5f
 			)
 		];
 		uint[2][2] memory b = [
 			[
 				uint256(
-					0x23bc47678acf5f6d96174fc61e0b01752aa12dcf1fc05cd2c0d95000002b2e1f
+					0x2b10e7cd1df73f04323e66a2f8c85b8f54c79f755df3e9806126793f0e30e01e
 				),
 				uint256(
-					0x2c05d0f1151fa00775f7a5b4c6b1d4174d6ac66047b5a1f4dc0bed490a0d1113
+					0x2555aa5600af3301c0dc687ab657b295fabbd20a231fcf9b122ebc4b6780a29f
 				)
 			],
 			[
 				uint256(
-					0x09ee6a245d26cd19af0602076b746f663f915f83b9027fb0d5f6d74db06df0d6
+					0x11503786b34bbbc71a10f8c6f291ec37dd0c6b25035a68796601e46c00e75563
 				),
 				uint256(
-					0x1e45388bc2f3eb7c099d6d3b7b7ca722e80697ba79ab8e837c4d761c00ed21ac
+					0x0bd08799c7ed78f241aa4dc2ec144be65c9a05f1788ee8ee4ff23c990c03e31e
 				)
 			]
 		];
 		uint[2] memory c = [
 			uint256(
-				0x004419a0465d9b994efc7c6a09ac4303c108146ee1ee0ba4ca73c5a1ffdc8ccd
+				0x0e863b32d3b7a69ba9d63cb0927d448ee70d6f099ef59c881f78a602a486ed8e
 			),
 			uint256(
-				0x14472fc146c5124305ce0245e628d5eb2a05abaa2fb338f64ab6ce671af99a57
+				0x116a86a05c12029cef3dbbc805819cc1577487137526d9d0876c46527005a3b3
 			)
 		];
 
-		uint[104] memory input = convertToUint256Array(
+		uint[72] memory input = convertToUint256Array(
 			locker,
 			unlocker,
-			unlockHash,
 			lockHash
 		);
 
