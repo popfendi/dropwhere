@@ -5,6 +5,41 @@ import bodyParser from "body-parser";
 const app = express();
 app.use(bodyParser.json());
 
+import fs from "fs";
+import path from "path";
+
+function readKeyFiles(callback) {
+  const vkPath = path.join("./verification.key");
+  const pkPath = path.join("./proving.key");
+
+  return new Promise((resolve, reject) => {
+    fs.readFile(vkPath, "utf8", function (err, vkData) {
+      if (err) {
+        return reject(new Error("Error reading verifier.key: " + err.message));
+      }
+
+      fs.readFile(pkPath, function (err, pkData) {
+        if (err) {
+          return reject(new Error("Error reading prover.key: " + err.message));
+        }
+
+        let vk;
+        try {
+          vk = JSON.parse(vkData);
+        } catch (parseErr) {
+          return reject(
+            new Error("Error parsing verifier.key JSON: " + parseErr.message),
+          );
+        }
+
+        const pk = new Uint8Array(pkData);
+
+        resolve({ vk, pk });
+      });
+    });
+  });
+}
+
 let zokratesProvider;
 let artifacts;
 let keypair;
@@ -57,8 +92,16 @@ async function initializeZokrates() {
   console.log("compiling...");
   artifacts = zokratesProvider.compile(source);
   console.log("compiled");
+
   console.log("setting up...");
-  keypair = zokratesProvider.setup(artifacts.program);
+
+  try {
+    keypair = await readKeyFiles();
+    // Now you can use the keypair variable as needed
+  } catch (err) {
+    console.error(err);
+  }
+
   console.log("setup success.");
 }
 
