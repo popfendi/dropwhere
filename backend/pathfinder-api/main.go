@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -9,9 +10,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -257,31 +255,47 @@ type MessageInput struct {
     Signature   string      `json:"signature"`
 }
 
-func getAddressFromSig(msgInput MessageInput) (string, error) {
-    msg := fmt.Sprintf("%s%.1f%.1f", msgInput.Message.Sender, msgInput.Message.Latitude, msgInput.Message.Longitude)
+type VerifyResponse struct {
+	Success bool   `json:"success"`
+	Error   string `json:"error,omitempty"`
+}
 
-    prefixedHash := crypto.Keccak256([]byte(fmt.Sprintf("\x19Ethereum Signed Message:\n%v", len(msg))), []byte(msg))
+func verifySig(msgInput MessageInput) (bool, error) {
+    msg := fmt.Sprintf("%s%.3f%.3f", msgInput.Message.Sender, msgInput.Message.Latitude, msgInput.Message.Longitude)
 
-    signature := hexutil.MustDecode(msgInput.Signature)
+	reqBody := struct{
+        Address string `json:"address"`
+        Message string `json:"message"`
+        Signature string `json:"signature"`
+        }{
+		Address:   msgInput.Message.Sender,
+		Message:   msg,
+		Signature: msgInput.Signature,
+	}
 
-    // transform yellow paper V from 27/28 to 0/1 (aka not sure what I'm doing but just works don't question it)
-    if signature[crypto.RecoveryIDOffset] == 27 || signature[crypto.RecoveryIDOffset] == 28 {
-        signature[crypto.RecoveryIDOffset] -= 27
-    }
+	jsonReqBody, err := json.Marshal(reqBody)
+	if err != nil {
+		return false, err
+	}
 
-    sigPublicKey, err := crypto.Ecrecover(prefixedHash, signature)
-    if err != nil {
-        return "", err
-    }
+	resp, err := http.Post(fmt.Sprintf("%s/verify", os.Getenv("SIG_VERIFY_HOST")), "application/json", bytes.NewBuffer(jsonReqBody))
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
 
-    recoveredKey, err := crypto.UnmarshalPubkey(sigPublicKey)
-    if err != nil {
-        return "", err
-    }
+	var verifyResp VerifyResponse
+	err = json.NewDecoder(resp.Body).Decode(&verifyResp)
+	if err != nil {
+		return false, err
+	}
 
-    recoveredAddress := crypto.PubkeyToAddress(*recoveredKey)
+	if verifyResp.Success {
+		return true, nil
+	} else {
+		return false, nil
+	}
 
-    return strings.ToLower(recoveredAddress.Hex()), nil
 }
 
 func storeMessageHandler(w http.ResponseWriter, r *http.Request) {
@@ -296,20 +310,21 @@ func storeMessageHandler(w http.ResponseWriter, r *http.Request) {
         http.Error(w, "Signature can't be empty", http.StatusBadRequest)
         return
     }
-    senderAddress, err := getAddressFromSig(msgInput)
+
+    verifyResult, err := verifySig(msgInput) 
     if err != nil {
         http.Error(w, "Invalid signature", http.StatusBadRequest)
         Sugar.Error(err)
         return
     }
 
-    if strings.ToLower(msgInput.Message.Sender) != senderAddress {
+    if !verifyResult {
         http.Error(w, "Signature must be signed by sender", http.StatusBadRequest)
         Sugar.Error(err)
         return
     }
 
-    msgInput.Message.Sender = senderAddress
+    msgInput.Message.Sender = strings.ToLower(msgInput.Message.Sender)
 
     id, err := insertMessageToDB(msgInput.Message)
     if err != nil {

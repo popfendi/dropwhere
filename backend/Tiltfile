@@ -1,10 +1,14 @@
 docker_build('pathfinder-api', 'pathfinder-api/')
 
+docker_build('proof-api', 'proof-api/')
+docker_build('sig-verify', 'sig-verify/')
+
 # Use local_resource to manage docker-compose
 local_resource(
     'docker-compose',
     cmd='docker-compose up',
-    deps=['docker-compose.yaml', 'pathfinder-api/dockerfile', 'pathfinder-api/go.mod', 'pathfinder-api/go.sum', 'pathfinder-api/*.go']
+    deps=['docker-compose.yaml', 'pathfinder-api/dockerfile', 'pathfinder-api/go.mod', 'pathfinder-api/go.sum', 'pathfinder-api/*.go', 'proof-api/Dockerfile', 'proof-api/*.js', 'proof-api/package.json', 'proof-api/package-lock.json',
+        'sig-verify/Dockerfile', 'sig-verify/*.js', 'sig-verify/package.json', 'sig-verify/package-lock.json']
 )
 
 # Watch for changes in the Dockerfile, Docker Compose file, Go source code, and dependency files
@@ -13,6 +17,16 @@ watch_file('docker-compose.yaml')
 watch_file('pathfinder-api/go.mod')
 watch_file('pathfinder-api/go.sum')
 watch_file('pathfinder-api/*.go')
+
+watch_file('proof-api/Dockerfile')
+watch_file('proof-api/*.js')
+watch_file('proof-api/package.json')
+watch_file('proof-api/package-lock.json')
+
+watch_file('sig-verify/Dockerfile')
+watch_file('sig-verify/*.js')
+watch_file('sig-verify/package.json')
+watch_file('sig-verify/package-lock.json')
 
 
 docker_compose("./docker-compose.yaml")

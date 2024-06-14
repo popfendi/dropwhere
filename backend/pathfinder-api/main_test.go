@@ -90,29 +90,3 @@ func TestFilterPrizeDeltas(t *testing.T) {
 	}
 }
 
-func Test_getAddressFromSig(t *testing.T) {
-	type args struct {
-		msgInput MessageInput
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    string
-		wantErr bool
-	}{
-		{name: "1", args: args{MessageInput{Message: Message{Sender: "0x2465f36f0cf94d4bea77a6f1d775984274461e36", Latitude: 1.0, Longitude: 1.0}, Signature: "0x6595ac715d13b6a19bba113f761b1cc5616837851e2d55c4b4e66e8c439461c0584b91cc7336317ca146ca1ec1c36334250d935d2d1eda6d0171196954486c3f1b"}}, want: "0x2465f36f0cf94d4bea77a6f1d775984274461e36", wantErr: false},
-        {name: "2", args: args{MessageInput{Message: Message{Sender: "0x2465f36f0cf94d4bea77a6f1d775984274461e36", Latitude: 1.0, Longitude: 1.0}, Signature: "0x60efb669e3eac20d070e6aad44b08e462d116c855d8e368e54c77c9db2d355c408877e1140e8ce83ad4490ffa28d15d74a75bbffdfdec95ef4afd65afd00f3121b"}}, want: "0xce9ba9baf1e6e98d853083ad18ca6eadff43d069", wantErr: false},
-    }
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := getAddressFromSig(tt.args.msgInput)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("getAddressFromSig() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("getAddressFromSig() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
