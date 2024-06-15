@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from "react";
 import { CoinbaseWalletSDK } from "@coinbase/wallet-sdk";
 import { CoinbaseWalletLogo } from "./CoinbaseWalletLogo";
+import { config } from "../config";
 
 const buttonStyles = {
   background: "transparent",
@@ -23,7 +24,7 @@ const buttonStyles = {
 const sdk = new CoinbaseWalletSDK({
   appName: "dropwhere",
   appLogoUrl: "https://i.ibb.co/pxCGggP/dwlogo.png",
-  appChainIds: [84532],
+  appChainIds: [config.chainId],
 });
 
 const provider = sdk.makeWeb3Provider();

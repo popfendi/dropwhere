@@ -1,15 +1,18 @@
 import React from "react";
 import { useState, useRef, useMemo } from "react";
 import { MapContainer, TileLayer, Marker } from "react-leaflet";
+import { useAccount, useSignMessage } from "wagmi";
+
 import MessageBuilder from "./MessageBuilder";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import icon from "leaflet/dist/images/marker-icon.png";
 import iconShadow from "leaflet/dist/images/marker-shadow.png";
+import { config } from "../config";
 
 const center = {
-  lat: 51.505,
-  lng: -0.09,
+  lat: 51.505123,
+  lng: -0.091231,
 };
 
 let DefaultIcon = L.icon({
@@ -23,8 +26,18 @@ const Create = () => {
   const [position, setPosition] = useState(center);
   const [tab, setTab] = useState("message");
   const [messageIndices, setMessageIndices] = useState([0, 0, 0]);
+  const [msg, setMsg] = useState({});
   const markerRef = useRef(null);
+  const { signMessage } = useSignMessage({
+    mutation: {
+      onSuccess: (sig) => {
+        postMessage(sig);
+      },
+    },
+  });
+  const account = useAccount();
 
+  // handler for the movable marker on map.
   const eventHandlers = useMemo(
     () => ({
       dragend() {
@@ -36,6 +49,28 @@ const Create = () => {
     }),
     [],
   );
+
+  const postMessage = async (sig) => {
+    await fetch(`${config.pathfinderURL}${config.messagePath}`, {
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+      body: JSON.stringify({ message: msg, signature: sig }),
+    })
+      .then(function (res) {
+        if (!res.ok) {
+          alert(res.json());
+          return;
+        }
+
+        handleMessagePostSuccess();
+      })
+      .catch(function (res) {
+        console.log(res);
+      });
+  };
 
   const handleTab = () => {
     if (tab == "message") {
@@ -64,8 +99,33 @@ const Create = () => {
     setMessageIndices(indices);
   };
 
-  const handleMessageDrop = () => {
-    //handle message logic
+  const handleMessageDrop = async () => {
+    if (messageIndices == null || messageIndices.length == 0) {
+      alert("Build a message first!");
+      return;
+    }
+
+    if (position == null) {
+      alert("Pick a location first!");
+      return;
+    }
+
+    var message = {};
+    const address = await account.address;
+
+    if (address == null || address == undefined) {
+      alert("Can't get your address, create a SmartWallet first!");
+      return;
+    }
+
+    message["sender"] = address;
+    message["text"] = messageIndices;
+    message["longitude"] = position.lng;
+    message["latitude"] = position.lat;
+
+    setMsg(message);
+    let msgToSign = `${address}${message["latitude"].toFixed(3)}${message["longitude"].toFixed(3)}`; // PoC implimentation, will replace with unique UUID or Nonce
+    signMessage({ message: msgToSign });
   };
 
   return (
@@ -76,6 +136,7 @@ const Create = () => {
         justifyContent: "flex-start",
         alignItems: "center",
         height: "95vh",
+        overflowX: "scroll",
       }}
     >
       <p className="form-text">Pick a Location</p>
