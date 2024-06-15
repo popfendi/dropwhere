@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import useDeviceOrientation from "../hooks/useDeviceOrientation";
 import useGeolocation from "../hooks/useGeolocation";
 import MessageRenderer from "./MessageRenderer";
+import { useAlert } from "react-alert";
 
 const Compass = (props) => {
   const { alpha, dir } = useDeviceOrientation();
@@ -10,6 +11,8 @@ const Compass = (props) => {
   const [deltas, setDeltas] = useState([]);
   const [veryCloseDeltas, setVeryCloseDeltas] = useState([]);
   const [isClose, setIsClose] = useState(false);
+
+  const alert = useAlert();
 
   useEffect(() => {
     const fetchDeltas = async () => {
@@ -342,11 +345,11 @@ const Compass = (props) => {
 
   const handleRadarClick = () => {
     if (isClose && veryCloseDeltas.length == 0) {
-      alert("You're close! keep searching the area 👀");
+      alert.show("You're close! keep searching the area 👀");
     }
     if (isClose && veryCloseDeltas.length > 0) {
       if (veryCloseDeltas[0]["type"] == "message") {
-        alert(`Message Left by: ${veryCloseDeltas[0]["sender"]}`);
+        alert.show(`Message Left by: ${veryCloseDeltas[0]["sender"]}`);
       }
     } else {
       return;

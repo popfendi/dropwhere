@@ -2,13 +2,18 @@ import React from "react";
 import { useState, useRef, useMemo } from "react";
 import { MapContainer, TileLayer, Marker } from "react-leaflet";
 import { useAccount, useSignMessage } from "wagmi";
+import { useAlert } from "react-alert";
+import { config } from "../config";
 
 import MessageBuilder from "./MessageBuilder";
+import TokenDrop from "./TokenDrop";
+import NftDrop from "./NftDrop";
+import EthDrop from "./EthDrop";
+
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import icon from "leaflet/dist/images/marker-icon.png";
 import iconShadow from "leaflet/dist/images/marker-shadow.png";
-import { config } from "../config";
 
 const center = {
   lat: 51.505123,
@@ -27,6 +32,10 @@ const Create = () => {
   const [tab, setTab] = useState("message");
   const [messageIndices, setMessageIndices] = useState([0, 0, 0]);
   const [msg, setMsg] = useState({});
+  const [dropDetails, setDropDetails] = useState({});
+  const [dropType, setDropType] = useState("");
+  const [dataIsFetching, setDataIsFetching] = useState(false);
+
   const markerRef = useRef(null);
   const { signMessage } = useSignMessage({
     mutation: {
@@ -36,6 +45,7 @@ const Create = () => {
     },
   });
   const account = useAccount();
+  const alert = useAlert();
 
   // handler for the movable marker on map.
   const eventHandlers = useMemo(
@@ -61,14 +71,16 @@ const Create = () => {
     })
       .then(function (res) {
         if (!res.ok) {
-          alert(res.json());
+          alert.show("error dropping message", { type: "error" });
+          console.log(res);
           return;
         }
 
-        handleMessagePostSuccess();
+        alert.show("Message Dropped!", { type: "success" });
       })
       .catch(function (res) {
         console.log(res);
+        alert.show("server error", { type: "error" });
       });
   };
 
@@ -87,12 +99,73 @@ const Create = () => {
         </>
       );
     } else if (tab == "token") {
-      return;
+      return (
+        <>
+          <TokenDrop onContractDetailsChanged={handleContractDetails} />
+          <button
+            style={{ margin: 20 }}
+            className="button-style"
+            onClick={handleMessageDrop}
+          >
+            Drop Tokens
+          </button>
+        </>
+      );
     } else if (tab == "nft") {
-      return;
+      return (
+        <>
+          <NftDrop onContractDetailsChanged={handleContractDetails} />
+          <button
+            style={{ margin: 20 }}
+            className="button-style"
+            onClick={handleMessageDrop}
+          >
+            Drop NFT
+          </button>
+        </>
+      );
     } else if (tab == "eth") {
-      return;
+      return (
+        <>
+          <EthDrop onContractDetailsChanged={handleContractDetails} />
+          <button
+            style={{ margin: 20 }}
+            className="button-style"
+            onClick={handleMessageDrop}
+          >
+            Drop ETH
+          </button>
+        </>
+      );
     }
+  };
+
+  const handleContractDetails = ({
+    contractAddress,
+    contractName,
+    contractSymbol,
+    amount,
+    expiryDate,
+    loading,
+    type,
+  }) => {
+    setDropDetails({
+      contractAddress,
+      contractName,
+      contractSymbol,
+      amount,
+      expiryDate,
+    });
+    setDropType(type);
+    setDataIsFetching(loading);
+    console.log(type);
+    console.log({
+      contractAddress,
+      contractName,
+      contractSymbol,
+      amount,
+      expiryDate,
+    });
   };
 
   const handleMessageConstructed = (indices) => {
@@ -101,12 +174,12 @@ const Create = () => {
 
   const handleMessageDrop = async () => {
     if (messageIndices == null || messageIndices.length == 0) {
-      alert("Build a message first!");
+      alert.show("Build a message first!", { type: "error" });
       return;
     }
 
     if (position == null) {
-      alert("Pick a location first!");
+      alert.show("Pick a location first!", { type: "error" });
       return;
     }
 
@@ -114,7 +187,9 @@ const Create = () => {
     const address = await account.address;
 
     if (address == null || address == undefined) {
-      alert("Can't get your address, create a SmartWallet first!");
+      alert.show("Can't get your address, create a SmartWallet first!", {
+        type: "error",
+      });
       return;
     }
 
