@@ -158,14 +158,6 @@ const Create = () => {
     });
     setDropType(type);
     setDataIsFetching(loading);
-    console.log(type);
-    console.log({
-      contractAddress,
-      contractName,
-      contractSymbol,
-      amount,
-      expiryDate,
-    });
   };
 
   const handleMessageConstructed = (indices) => {
