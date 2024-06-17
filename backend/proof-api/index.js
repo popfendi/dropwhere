@@ -1,9 +1,16 @@
 import { initialize } from "zokrates-js";
 import express from "express";
 import bodyParser from "body-parser";
+import cors from "cors";
 
 const app = express();
 app.use(bodyParser.json());
+
+const corsOrigin = process.env.ALLOWED_HOST || "*";
+const corsOptions = {
+  origin: corsOrigin,
+};
+app.use(cors(corsOptions));
 
 import fs from "fs";
 import path from "path";
