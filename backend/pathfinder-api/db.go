@@ -59,25 +59,38 @@ func initDB() {
     }
 }
 
-func insertPrizeLockToDB(prize Prize) error {
+func upsertPrizeLockToDB(prize Prize) error {
     query := `
     INSERT INTO prizes (id, sender, latitude, longitude, password, hashed_password, type, contract_address, name, symbol, amount, expires, active)
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-`
+    ON CONFLICT (id) 
+    DO UPDATE SET
+        sender = EXCLUDED.sender,
+        latitude = EXCLUDED.latitude,
+        longitude = EXCLUDED.longitude,
+        password = EXCLUDED.password,
+        hashed_password = EXCLUDED.hashed_password,
+        type = EXCLUDED.type,
+        contract_address = EXCLUDED.contract_address,
+        name = EXCLUDED.name,
+        symbol = EXCLUDED.symbol,
+        amount = EXCLUDED.amount,
+        expires = EXCLUDED.expires,
+        active = EXCLUDED.active
+    `
     amountStr := prize.Amount.String()
     _, err := db.Exec(query, prize.ID, prize.Sender, prize.Latitude, prize.Longitude, prize.Password, prize.HashedPassword,
         prize.Type, prize.ContractAddress, prize.Name, prize.Symbol, amountStr, prize.Expires, prize.Active)
     return err
 }
 
-func updatePrizeLockFields(pType, sender, id string, amount *big.Int, active bool) error {
+func updatePrizeLockFields(pType, sender, id string, active bool) error {
     query := `
     UPDATE prizes
-    SET type = $1, amount = $2, sender = $3, active = $4
-    WHERE id = $5
+    SET type = $1, sender = $2, active = $3
+    WHERE id = $4
     `
-    amountStr := amount.String()
-    _, err := db.Exec(query, pType, amountStr, sender, active, id)
+    _, err := db.Exec(query, pType, sender, active, id)
     return err
 }
 

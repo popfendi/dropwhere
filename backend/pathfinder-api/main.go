@@ -50,6 +50,31 @@ func (p *Prize) normalizePrizeAddresses(){
     p.ContractAddress = normalizeAddress(p.ContractAddress)
 }
 
+func (p *Prize) UnmarshalJSON(data []byte) error {
+	type Alias Prize 
+
+	aux := &struct {
+		Amount string `json:"amount"` 
+		*Alias
+	}{
+		Alias: (*Alias)(p),
+	}
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	if aux.Amount != "" {
+		p.Amount = new(big.Int)
+		_, ok := p.Amount.SetString(aux.Amount, 10)
+		if !ok {
+			return fmt.Errorf("invalid big.Int string: %s", aux.Amount)
+		}
+	}
+
+	return nil
+}
+
 func haversine(lat1, lon1, lat2, lon2 float64) (float64, float64) {
     const R = 6371 // Radius of the Earth in kilometers
     dLat := (lat2 - lat1) * (math.Pi / 180)
@@ -214,7 +239,7 @@ func getDelta(w http.ResponseWriter, r *http.Request) {
 
    prizeDeltas := filterPrizeDeltas(userLocation, prizes)
 
-   messages, err := getMessagesWithinRadius(userLocation.Latitude, userLocation.Longitude, 5) //5km for messages
+   messages, err := getMessagesWithinRadius(userLocation.Latitude, userLocation.Longitude, 8) //8km for messages
     if err != nil {
         http.Error(w, "Failed to retrieve message deltas", http.StatusInternalServerError)
         Sugar.Error(err)
@@ -240,7 +265,7 @@ func storePrizeLockHandler(w http.ResponseWriter, r *http.Request) {
     prize.normalizePrizeAddresses()
     prize.Active = false
 
-    if err := insertPrizeLockToDB(prize); err != nil {
+    if err := upsertPrizeLockToDB(prize); err != nil {
         http.Error(w, "Failed to store prize", http.StatusInternalServerError)
         Sugar.Error(err)
         return
@@ -324,7 +349,7 @@ func storeMessageHandler(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    msgInput.Message.Sender = strings.ToLower(msgInput.Message.Sender)
+    msgInput.Message.Sender = normalizeAddress(msgInput.Message.Sender)
 
     id, err := insertMessageToDB(msgInput.Message)
     if err != nil {

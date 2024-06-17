@@ -14,10 +14,10 @@ import (
 var client *ethclient.Client
 var dmContract *dropmanager.Dropmanager
 
-func initClient() error {
+func initClient()  {
 	c, err := ethclient.Dial(os.Getenv("WS_NODE"))
 	if err != nil {
-		return err
+		Sugar.Fatal(err)
 	}
 	
 	client = c
@@ -25,11 +25,11 @@ func initClient() error {
 	ca := common.HexToAddress(os.Getenv("DM_CA"))
 	dm, err := dropmanager.NewDropmanager(ca, client)
 	if err != nil {
-		return err
+		Sugar.Fatal(err)
 	}
 
 	dmContract = dm
-	return err
+	Sugar.Info("node client initialized")
 }
 
 func listenForLocks() {
@@ -53,8 +53,8 @@ func listenForLocks() {
 			}
 		case log := <-sink:
 			sender := strings.ToLower(log.Sender.Hex())
-			id := fmt.Sprintf("0x%v", log.Id)
-			err := updatePrizeLockFields(log.PrizeType, sender, id, log.Amount, true)
+			id := fmt.Sprintf("0x%s",normalizeAddress(common.Bytes2Hex(log.Id[:])))
+			err := updatePrizeLockFields(log.PrizeType, sender, id, true)
 			if err != nil {
 				Sugar.Error(err)
 			}
@@ -85,7 +85,7 @@ func listenForUnlocks() {
 		case log := <-sink:
 			sender := strings.ToLower(log.Sender.Hex())
 			id := fmt.Sprintf("0x%v", log.Id)
-			err := updatePrizeLockFields(log.PrizeType, sender, id, log.Amount, false)
+			err := updatePrizeLockFields(log.PrizeType, sender, id, false)
 			if err != nil {
 				Sugar.Error(err)
 			}
