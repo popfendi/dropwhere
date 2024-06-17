@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: MIT
+// created by popfendi
 pragma solidity ^0.8.20;
 
 import { Verifier, Pairing } from "./zk-verifier/verifier.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/interfaces/IERC721Receiver.sol";
-
-import "forge-std/console.sol"; //REMOVE AFTER TESTING
 
 contract DropManager is IERC721Receiver {
 	struct Drop {
