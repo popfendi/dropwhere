@@ -2,8 +2,13 @@ import React from "react";
 import { useState, useRef, useMemo } from "react";
 import { MapContainer, TileLayer, Marker } from "react-leaflet";
 import { useAccount, useSignMessage } from "wagmi";
+import { readContracts, writeContract } from "@wagmi/core";
+import { wagmiConfig } from "../WagmiConfig";
+import { toHex, encodePacked, keccak256, parseUnits } from "viem";
 import { useAlert } from "react-alert";
 import { config } from "../config";
+import { dropManagerABI } from "../abi/dropManager";
+import { v4 } from "uuid";
 
 import MessageBuilder from "./MessageBuilder";
 import TokenDrop from "./TokenDrop";
@@ -14,6 +19,8 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import icon from "leaflet/dist/images/marker-icon.png";
 import iconShadow from "leaflet/dist/images/marker-shadow.png";
+import { tokenABI } from "../abi/token";
+import { nftABI } from "../abi/nft";
 
 const center = {
   lat: 51.505123,
@@ -105,7 +112,7 @@ const Create = () => {
           <button
             style={{ margin: 20 }}
             className="button-style"
-            onClick={handleMessageDrop}
+            onClick={handleTokenDrop}
           >
             Drop Tokens
           </button>
@@ -118,7 +125,7 @@ const Create = () => {
           <button
             style={{ margin: 20 }}
             className="button-style"
-            onClick={handleMessageDrop}
+            onClick={handleNftDrop}
           >
             Drop NFT
           </button>
@@ -131,7 +138,7 @@ const Create = () => {
           <button
             style={{ margin: 20 }}
             className="button-style"
-            onClick={handleMessageDrop}
+            onClick={handleEthDrop}
           >
             Drop ETH
           </button>
@@ -193,6 +200,389 @@ const Create = () => {
     setMsg(message);
     let msgToSign = `${address}${message["latitude"].toFixed(3)}${message["longitude"].toFixed(3)}`; // PoC implimentation, will replace with unique UUID or Nonce
     signMessage({ message: msgToSign });
+  };
+
+  const handleTokenDrop = async () => {
+    const userAddress = await account.address;
+
+    if (userAddress == null || userAddress == undefined) {
+      alert.show("Can't get your address, create a SmartWallet first!", {
+        type: "error",
+      });
+      return;
+    }
+
+    if (
+      dropDetails.contractAddress == null ||
+      dropDetails.contractAddress == undefined ||
+      dropDetails.contractAddress == ""
+    ) {
+      alert.show("Invalid Contract Address", { type: "error" });
+      return;
+    }
+
+    if (
+      dropDetails.contractName == null ||
+      dropDetails.contractName == undefined ||
+      dropDetails.contractName == ""
+    ) {
+      alert.show("Invalid Contract Name", { type: "error" });
+      return;
+    }
+
+    if (
+      dropDetails.contractSymbol == null ||
+      dropDetails.contractSymbol == undefined ||
+      dropDetails.contractSymbol == ""
+    ) {
+      alert.show("Invalid Contract Symbol", { type: "error" });
+      return;
+    }
+
+    if (
+      dropDetails.amount == null ||
+      dropDetails.amount == undefined ||
+      dropDetails.amount == 0
+    ) {
+      alert.show("Invalid Amount", { type: "error" });
+      return;
+    }
+
+    try {
+      const dropManagerContract = {
+        abi: dropManagerABI,
+        address: config.dropManagerAddress,
+      };
+
+      const tokenContract = {
+        abi: tokenABI,
+        address: dropDetails.contractAddress,
+      };
+      const results = await readContracts(wagmiConfig, {
+        contracts: [
+          {
+            ...dropManagerContract,
+            functionName: "userNonces",
+            args: [userAddress],
+          },
+          {
+            ...tokenContract,
+            functionName: "decimals",
+          },
+          {
+            ...tokenContract,
+            functionName: "allowance",
+            args: [userAddress, config.dropManagerAddress],
+          },
+        ],
+      });
+
+      const userNonce = results[0]["result"];
+      const decimals = results[1]["result"];
+      const allowance = results[2]["result"];
+      const fAmount = parseUnits(dropDetails.amount, decimals);
+      const fDate = +Date.parse(dropDetails.expiryDate);
+
+      const dropID = keccak256(
+        encodePacked(["address", "uint256"], [userAddress, userNonce]),
+      );
+
+      const uuid = v4();
+      const pw = keccak256(toHex(uuid)); // not the hashed pw, just to ensure always bytes32
+      const hashedPw = keccak256(
+        encodePacked(["address", "bytes32"], [userAddress, pw]),
+      );
+
+      const apiRes = await fetch(`${config.pathfinderURL}${config.dropPath}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: dropID,
+          sender: userAddress,
+          latitude: position.lat,
+          longitude: position.lng,
+          password: pw,
+          hashedPassword: hashedPw,
+          type: dropType,
+          contractAddress: dropDetails.contractAddress,
+          name: dropDetails.contractName,
+          symbol: dropDetails.contractSymbol,
+          amount: dropDetails.amount,
+          expires: fDate,
+          active: false,
+        }),
+      });
+
+      if (apiRes.status != 201) {
+        const data = await apiRes.json();
+        alert.show(data, { type: "error" });
+        return;
+      }
+
+      if (fAmount > allowance) {
+        await writeContract(wagmiConfig, {
+          abi: tokenABI,
+          address: dropDetails.contractAddress,
+          functionName: "approve",
+          args: [config.dropManagerAddress, fAmount],
+        });
+      }
+
+      const hash = await writeContract(wagmiConfig, {
+        abi: dropManagerABI,
+        address: config.dropManagerAddress,
+        functionName: "createDropLockERC20",
+        args: [hashedPw, dropDetails.contractAddress, fAmount, fDate],
+      });
+
+      alert.show(`success TX hash: ${hash}`);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const handleNftDrop = async () => {
+    const userAddress = await account.address;
+
+    if (userAddress == null || userAddress == undefined) {
+      alert.show("Can't get your address, create a SmartWallet first!", {
+        type: "error",
+      });
+      return;
+    }
+
+    if (
+      dropDetails.contractAddress == null ||
+      dropDetails.contractAddress == undefined ||
+      dropDetails.contractAddress == ""
+    ) {
+      alert.show("Invalid Contract Address", { type: "error" });
+      return;
+    }
+
+    if (
+      dropDetails.contractName == null ||
+      dropDetails.contractName == undefined ||
+      dropDetails.contractName == ""
+    ) {
+      alert.show("Invalid Contract Name", { type: "error" });
+      return;
+    }
+
+    if (
+      dropDetails.contractSymbol == null ||
+      dropDetails.contractSymbol == undefined ||
+      dropDetails.contractSymbol == ""
+    ) {
+      alert.show("Invalid Contract Symbol", { type: "error" });
+      return;
+    }
+
+    if (dropDetails.amount == null || dropDetails.amount == undefined) {
+      alert.show("Invalid ID", { type: "error" });
+      return;
+    }
+
+    try {
+      const dropManagerContract = {
+        abi: dropManagerABI,
+        address: config.dropManagerAddress,
+      };
+
+      const tokenContract = {
+        abi: nftABI,
+        address: dropDetails.contractAddress,
+      };
+      const results = await readContracts(wagmiConfig, {
+        contracts: [
+          {
+            ...dropManagerContract,
+            functionName: "userNonces",
+            args: [userAddress],
+          },
+          {
+            ...tokenContract,
+            functionName: "getApproved",
+            args: [dropDetails.amount], // amount == tokenId in this context
+          },
+        ],
+      });
+
+      const userNonce = results[0]["result"];
+      const approved = results[1]["result"] == config.dropManagerAddress;
+      const fDate = +Date.parse(dropDetails.expiryDate);
+
+      const dropID = keccak256(
+        encodePacked(["address", "uint256"], [userAddress, userNonce]),
+      );
+
+      const uuid = v4();
+      const pw = keccak256(toHex(uuid)); // not the hashed pw, just to ensure always bytes32
+      const hashedPw = keccak256(
+        encodePacked(["address", "bytes32"], [userAddress, pw]),
+      );
+
+      const apiRes = await fetch(`${config.pathfinderURL}${config.dropPath}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: dropID,
+          sender: userAddress,
+          latitude: position.lat,
+          longitude: position.lng,
+          password: pw,
+          hashedPassword: hashedPw,
+          type: dropType,
+          contractAddress: dropDetails.contractAddress,
+          name: dropDetails.contractName,
+          symbol: dropDetails.contractSymbol,
+          amount: dropDetails.amount,
+          expires: fDate,
+          active: false,
+        }),
+      });
+
+      if (apiRes.status != 201) {
+        const data = await apiRes.json();
+        alert.show(data, { type: "error" });
+        return;
+      }
+
+      if (!approved) {
+        await writeContract(wagmiConfig, {
+          abi: nftABI,
+          address: dropDetails.contractAddress,
+          functionName: "approve",
+          args: [config.dropManagerAddress, dropDetails.amount],
+        });
+      }
+
+      const hash = await writeContract(wagmiConfig, {
+        abi: dropManagerABI,
+        address: config.dropManagerAddress,
+        functionName: "createDropLockERC721",
+        args: [
+          hashedPw,
+          dropDetails.contractAddress,
+          dropDetails.amount,
+          fDate,
+        ],
+      });
+
+      alert.show(`success TX hash: ${hash}`);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const handleEthDrop = async () => {
+    /*
+    FLOW:
+    check formatting of inputs
+    get user nonce
+    hash user&nonce to get ID
+    generate PW
+    hash PW
+
+    post to API (active=false)
+    ensure successful response
+
+    send add drop TX
+
+    will be activated on back end.
+    */
+    const userAddress = await account.address;
+
+    if (userAddress == null || userAddress == undefined) {
+      alert.show("Can't get your address, create a SmartWallet first!", {
+        type: "error",
+      });
+      return;
+    }
+
+    if (
+      dropDetails.amount == null ||
+      dropDetails.amount == undefined ||
+      dropDetails.amount == 0
+    ) {
+      alert.show("Invalid Amount", { type: "error" });
+      return;
+    }
+
+    try {
+      const dropManagerContract = {
+        abi: dropManagerABI,
+        address: config.dropManagerAddress,
+      };
+
+      const results = await readContracts(wagmiConfig, {
+        contracts: [
+          {
+            ...dropManagerContract,
+            functionName: "userNonces",
+            args: [userAddress],
+          },
+        ],
+      });
+
+      const userNonce = results[0]["result"];
+      const fAmount = parseUnits(dropDetails.amount, 18);
+      const fDate = +Date.parse(dropDetails.expiryDate);
+
+      const dropID = keccak256(
+        encodePacked(["address", "uint256"], [userAddress, userNonce]),
+      );
+
+      const uuid = v4();
+      const pw = keccak256(toHex(uuid)); // not the hashed pw, just to ensure always bytes32
+      const hashedPw = keccak256(
+        encodePacked(["address", "bytes32"], [userAddress, pw]),
+      );
+
+      const apiRes = await fetch(`${config.pathfinderURL}${config.dropPath}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: dropID,
+          sender: userAddress,
+          latitude: position.lat,
+          longitude: position.lng,
+          password: pw,
+          hashedPassword: hashedPw,
+          type: dropType,
+          contractAddress: "ETH",
+          name: "Ethereum",
+          symbol: "ETH",
+          amount: fAmount.toString(),
+          expires: fDate,
+          active: false,
+        }),
+      });
+
+      if (apiRes.status != 201) {
+        const data = await apiRes.json();
+        alert.show(data, { type: "error" });
+        return;
+      }
+
+      const hash = await writeContract(wagmiConfig, {
+        abi: dropManagerABI,
+        address: config.dropManagerAddress,
+        functionName: "createDropLockETH",
+        args: [hashedPw, fDate],
+        value: fAmount,
+      });
+
+      alert.show(`success TX hash: ${hash}`);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   return (

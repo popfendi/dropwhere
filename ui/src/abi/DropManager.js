@@ -1,5 +1,4 @@
-export const DropManagerABI = [
-  { type: "constructor", inputs: [], stateMutability: "nonpayable" },
+export const dropManagerABI = [
   {
     type: "function",
     name: "createDropLockERC20",

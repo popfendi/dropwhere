@@ -4,6 +4,7 @@ import useDeviceOrientation from "../hooks/useDeviceOrientation";
 import useGeolocation from "../hooks/useGeolocation";
 import MessageRenderer from "./MessageRenderer";
 import { useAlert } from "react-alert";
+import { config } from "../config";
 
 const Compass = (props) => {
   const { alpha, dir } = useDeviceOrientation();
@@ -18,16 +19,19 @@ const Compass = (props) => {
     const fetchDeltas = async () => {
       if (position.latitude && position.longitude) {
         try {
-          const response = await fetch("http://localhost:3001/delta", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
+          const response = await fetch(
+            `${config.pathfinderURL}${config.deltaPath}`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                latitude: position.latitude,
+                longitude: position.longitude,
+              }),
             },
-            body: JSON.stringify({
-              latitude: position.latitude,
-              longitude: position.longitude,
-            }),
-          });
+          );
 
           const data = await response.json();
           setDeltas(data);
@@ -228,12 +232,12 @@ const Compass = (props) => {
       case "<3km":
         obj.size = 35;
         obj.color = "#E6AF2E";
-        obj.offset = 95;
+        obj.offset = 120;
         break;
       case "<5km":
         obj.size = 35;
         obj.color = "#FF7D00";
-        obj.offset = 110;
+        obj.offset = 130;
         break;
       case "<8km":
         obj.size = 35;
@@ -323,7 +327,7 @@ const Compass = (props) => {
     }
 
     setVeryCloseDeltas(veryClose);
-  }, [deltas, isClose, veryCloseDeltas]);
+  }, [deltas]);
 
   const mapDeltas = deltas.map((delta) => {
     if (delta.proximity === "<100m" || delta.proximity === "<10m") {
