@@ -106,6 +106,7 @@ type Delta struct {
     ID              string      `json:"id"`
     Direction       float64     `json:"direction"`
     Proximity       string      `json:"proximity"`
+    Sender          string      `json:"sender"`
     Password        string      `json:"password,omitempty"`
     Message         []int8      `json:"message,omitempty"`
     HashedPassword  string      `json:"hashedPassword,omitempty"`
@@ -148,13 +149,14 @@ func filterPrizeDeltas(userLocation UserLocation, prizes []Prize) []Delta{
             proximity = "<10km"
         }
 
-        if isWithinDistance(userLocation.Latitude, userLocation.Longitude, prize.Latitude, prize.Longitude, 0.005) {
+        if isWithinDistance(userLocation.Latitude, userLocation.Longitude, prize.Latitude, prize.Longitude, 0.01) {
             deltas = append(deltas, Delta{
                 ID:        prize.ID,
                 Direction: direction,
                 Proximity: proximity,
                 Password: prize.Password,
                 HashedPassword: prize.HashedPassword,
+                Sender: prize.Sender,
                 Type: prize.Type,
                 ContractAddress: prize.ContractAddress,
                 Name: prize.Name,
@@ -167,6 +169,7 @@ func filterPrizeDeltas(userLocation UserLocation, prizes []Prize) []Delta{
                 Direction: direction,
                 Proximity: proximity,
                 HashedPassword: prize.HashedPassword,
+                Sender: prize.Sender,
                 Type: prize.Type,
                 ContractAddress: prize.ContractAddress,
                 Name: prize.Name,
