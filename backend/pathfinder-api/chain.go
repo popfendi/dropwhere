@@ -84,7 +84,7 @@ func listenForUnlocks() {
 			}
 		case log := <-sink:
 			sender := strings.ToLower(log.Sender.Hex())
-			id := fmt.Sprintf("0x%v", log.Id)
+			id := fmt.Sprintf("0x%s",normalizeAddress(common.Bytes2Hex(log.Id[:])))
 			err := updatePrizeLockFields(log.PrizeType, sender, id, false)
 			if err != nil {
 				Sugar.Error(err)
