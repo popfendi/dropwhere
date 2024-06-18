@@ -370,14 +370,15 @@ func main() {
     initDB()
     initClient()
     port := os.Getenv("SERVER_PORT")
-    allowedHost := os.Getenv("ALLOWED_HOST")
+    allowedHosts := os.Getenv("ALLOWED_HOSTS")
+    origins := strings.Split(allowedHosts, ",")
     r := mux.NewRouter()
     r.HandleFunc("/delta", getDelta).Methods("POST")
     r.HandleFunc("/prizes", storePrizeLockHandler).Methods("POST")
     r.HandleFunc("/messages", storeMessageHandler).Methods("POST")
 
 	headersOk := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type"})
-	originsOk := handlers.AllowedOrigins([]string{allowedHost})
+	originsOk := handlers.AllowedOrigins(origins)
 	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"})
 
     go listenForLocks()

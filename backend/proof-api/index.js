@@ -6,9 +6,17 @@ import cors from "cors";
 const app = express();
 app.use(bodyParser.json());
 
-const corsOrigin = process.env.ALLOWED_HOST || "*";
+const allowedHosts = process.env.ALLOWED_HOSTS || "";
+const allowedOrigins = allowedHosts.split(",");
+
 const corsOptions = {
-  origin: corsOrigin,
+  origin: function (origin, callback) {
+    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
 };
 app.use(cors(corsOptions));
 
