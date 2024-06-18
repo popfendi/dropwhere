@@ -161,9 +161,16 @@ func getMessagesWithinRadius(lat, lon, radius float64) ([]Message, error) {
     var messages []Message
     for rows.Next() {
         var msg Message
-        if err := rows.Scan(&msg.ID, &msg.Sender, pq.Array(&msg.Text), &msg.Latitude, &msg.Longitude, &msg.Expires, &msg.Active); err != nil {
+        var int64Array pq.Int64Array
+        if err := rows.Scan(&msg.ID, &msg.Sender, &int64Array, &msg.Latitude, &msg.Longitude, &msg.Expires, &msg.Active); err != nil {
             return nil, err
         }
+
+        int16Array := make([]int16, len(int64Array))
+        for i, v := range int64Array {
+            int16Array[i] = int16(v)
+        }
+        msg.Text = int16Array
 
         distance, _ := haversine(lat, lon, msg.Latitude, msg.Longitude)
 
