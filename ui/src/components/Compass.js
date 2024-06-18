@@ -3,8 +3,15 @@ import { useEffect, useState } from "react";
 import useDeviceOrientation from "../hooks/useDeviceOrientation";
 import useGeolocation from "../hooks/useGeolocation";
 import MessageRenderer from "./MessageRenderer";
+import { useAccount, useSignMessage } from "wagmi";
+import { readContracts, writeContract } from "@wagmi/core";
+import { wagmiConfig } from "../WagmiConfig";
+import { dropManagerABI } from "../abi/dropManager";
 import { useAlert } from "react-alert";
 import { config } from "../config";
+import { spiral } from "ldrs";
+
+spiral.register();
 
 const Compass = (props) => {
   const { alpha, dir } = useDeviceOrientation();
@@ -12,8 +19,10 @@ const Compass = (props) => {
   const [deltas, setDeltas] = useState([]);
   const [veryCloseDeltas, setVeryCloseDeltas] = useState([]);
   const [isClose, setIsClose] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const alert = useAlert();
+  const account = useAccount();
 
   useEffect(() => {
     const fetchDeltas = async () => {
@@ -34,82 +43,13 @@ const Compass = (props) => {
           );
 
           const data = await response.json();
+          if (data == null || data == undefined) {
+            setDeltas([]);
+            return;
+          }
           setDeltas(data);
         } catch (error) {
           console.error("Error fetching deltas:", error);
-          setDeltas([
-            {
-              id: "75b065e1-2f33-44c1-8be3-052b169da214",
-              direction: -109.56566011365483,
-              proximity: "<5km",
-              symbol: "$test",
-              name: "test",
-              amount: 1000000000,
-              type: "erc20",
-            },
-            {
-              id: "b7816282-8639-4462-af86-a7db9cffdc53",
-              direction: -11.760248531080874,
-              proximity: "10km",
-              symbol: "$tst",
-              name: "test",
-              amount: 1000000000,
-              type: "erc20",
-            },
-            {
-              id: "3",
-              direction: -90.56566011365483,
-              proximity: "<3km",
-              symbol: "$test",
-              name: "test",
-              amount: 1000000000,
-              type: "erc20",
-            },
-            {
-              id: "4",
-              direction: -30.760248531080874,
-              proximity: "<250m",
-              symbol: "$tst",
-              name: "test",
-              amount: 1000000000,
-              type: "erc20",
-            },
-            {
-              id: "5",
-              direction: -140.56566011365483,
-              proximity: "<8km",
-              symbol: "$test",
-              name: "test",
-              amount: 1000000000,
-              type: "erc20",
-            },
-            {
-              id: "6",
-              direction: -170.760248531080874,
-              proximity: "<500m",
-              symbol: "$tst",
-              name: "test",
-              amount: 1000000000,
-              type: "erc20",
-            },
-            {
-              id: "7",
-              direction: -200.760248531080874,
-              proximity: "<10km",
-              symbol: "$tst",
-              name: "test",
-              amount: 1000000000,
-              type: "erc20",
-            },
-            {
-              id: "8",
-              direction: -230.760248531080874,
-              proximity: "<10m",
-              sender: "0x000000",
-              text: [8, 0, 37],
-              type: "message",
-            },
-          ]);
         }
       }
     };
@@ -118,82 +58,6 @@ const Compass = (props) => {
 
     return () => clearInterval(intervalId);
   }, [position.latitude, position.longitude]);
-
-  useEffect(() => {
-    setDeltas([
-      {
-        id: "75b065e1-2f33-44c1-8be3-052b169da214",
-        direction: -109.56566011365483,
-        proximity: "<5km",
-        symbol: "$test",
-        name: "test",
-        amount: 1000000000,
-        type: "erc20",
-      },
-      {
-        id: "b7816282-8639-4462-af86-a7db9cffdc53",
-        direction: -11.760248531080874,
-        proximity: "10km",
-        symbol: "$tst",
-        name: "test",
-        amount: 1000000000,
-        type: "erc20",
-      },
-      {
-        id: "3",
-        direction: -90.56566011365483,
-        proximity: "<3km",
-        symbol: "$test",
-        name: "test",
-        amount: 1000000000,
-        type: "erc20",
-      },
-      {
-        id: "4",
-        direction: -30.760248531080874,
-        proximity: "<250m",
-        symbol: "$tst",
-        name: "test",
-        amount: 1000000000,
-        type: "erc20",
-      },
-      {
-        id: "5",
-        direction: -140.56566011365483,
-        proximity: "<8km",
-        symbol: "$test",
-        name: "test",
-        amount: 1000000000,
-        type: "erc20",
-      },
-      {
-        id: "6",
-        direction: -170.760248531080874,
-        proximity: "<500m",
-        symbol: "$tst",
-        name: "test",
-        amount: 1000000000,
-        type: "erc20",
-      },
-      {
-        id: "7",
-        direction: -200.760248531080874,
-        proximity: "<10km",
-        symbol: "$tst",
-        name: "test",
-        amount: 1000000000,
-        type: "erc20",
-      },
-      {
-        id: "8",
-        direction: -230.760248531080874,
-        sender: "0x000000",
-        proximity: "<10m",
-        text: [8, 0, 37],
-        type: "message",
-      },
-    ]);
-  }, []);
 
   const compassStyle = {
     transform: `rotate(${alpha}deg)`,
@@ -274,6 +138,7 @@ const Compass = (props) => {
       justifyContent: "center",
       transform: `rotate(${delta.direction}deg) translate(0, -${obj.offset}px) rotate(${-delta.direction}deg)`, // Adjust the position to the edge
       transformOrigin: "center center",
+      filter: `drop-shadow(0px 0px 4px ${obj.color})`,
       backgroundColor: obj.color,
     };
   };
@@ -294,6 +159,7 @@ const Compass = (props) => {
       justifyContent: "center",
       transform: `rotate(${delta.direction}deg) translate(0, -${obj.offset + 15}px) rotate(${-delta.direction}deg)`, // Adjust the position to the edge
       transformOrigin: "center center",
+      filter: `drop-shadow(0px 0px 4px rgba(61, 59, 89, 0.8))`,
       backgroundColor: "rgba(61, 59, 89, 0.8)",
     };
   };
@@ -354,13 +220,82 @@ const Compass = (props) => {
     if (isClose && veryCloseDeltas.length > 0) {
       if (veryCloseDeltas[0]["type"] == "message") {
         alert.show(`Message Left by: ${veryCloseDeltas[0]["sender"]}`);
+      } else {
+        let drop = veryCloseDeltas[0];
+        handleUnlockDrop(
+          drop["id"],
+          drop["password"],
+          drop["hashedPassword"],
+          drop["sender"],
+        );
       }
     } else {
       return;
     }
   };
 
-  const isCloseIconHandler = () => {
+  const handleUnlockDrop = async (lockId, pw, pwHash, locker) => {
+    const userAddress = await account.address;
+
+    if (userAddress == null || userAddress == undefined) {
+      alert.show("Can't get your address, create a SmartWallet first!", {
+        type: "error",
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const proofRes = await fetch(`${config.proofURL}${config.proofPath}`, {
+        timeout: 120000,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          passwordHex: pw,
+          lockerAddressHex: locker,
+          unlockerAddressHex: userAddress,
+          lockHashHex: pwHash,
+        }),
+      });
+
+      if (proofRes.status != 200) {
+        alert.show("Error generating proof", { type: "error" });
+        setLoading(false);
+        return;
+      }
+
+      const data = await proofRes.json();
+
+      const hash = await writeContract(wagmiConfig, {
+        abi: dropManagerABI,
+        address: config.dropManagerAddress,
+        functionName: "unlockDrop",
+        args: [
+          [
+            data["proof"][0][0],
+            data["proof"][0][1],
+            data["proof"][1][0][0],
+            data["proof"][1][0][1],
+            data["proof"][1][1][0],
+            data["proof"][1][1][1],
+            data["proof"][2][0],
+            data["proof"][2][1],
+          ],
+          lockId,
+        ],
+      });
+
+      alert.show(`success TX hash: ${hash}`);
+      setLoading(false);
+    } catch (error) {
+      setLoading(false);
+      console.log(error);
+    }
+  };
+
+  const iconHandler = () => {
     if (isClose && veryCloseDeltas.length == 0) {
       return (
         <p
@@ -375,14 +310,17 @@ const Compass = (props) => {
           ❔
         </p>
       );
-    }
-    if (
+    } else if (
       isClose &&
       veryCloseDeltas.length > 0 &&
       veryCloseDeltas[0]["type"] == "message"
     ) {
       return <MessageRenderer indices={veryCloseDeltas[0]["text"]} />;
-    } else {
+    } else if (
+      isClose &&
+      veryCloseDeltas.length > 0 &&
+      veryCloseDeltas[0]["type"] != "message"
+    ) {
       return (
         <p
           style={{
@@ -396,14 +334,11 @@ const Compass = (props) => {
           ⛏️
         </p>
       );
+    } else {
+      return <>{dir}</>;
     }
   };
 
-  /*
-  if (error) {
-    alert(error);
-  }
-*/
   return (
     <div
       style={{
@@ -416,26 +351,43 @@ const Compass = (props) => {
     >
       <div className="radar-container" style={compassStyle}>
         <div className="radar-div">{mapDeltas}</div>
-        <p
-          onClick={handleRadarClick}
-          style={{
-            color: "#48435C",
-            fontSize: 15,
-            fontFamily: "Times New Roman",
-            minWidth: "95px",
-            maxWidth: "95px",
-            height: "95px",
-            borderRadius: "50%",
-            textAlign: "center",
-            transform: `rotate(${-alpha}deg)`,
-            boxShadow: "inset 0 0 30px #48435C",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          {isClose ? isCloseIconHandler() : dir}
-        </p>
+        {loading ? (
+          <div
+            style={{
+              boxShadow: "inset 0 0 30px #48435C",
+              borderRadius: "50%",
+              minWidth: "95px",
+              maxWidth: "95px",
+              height: "95px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <l-spiral size="40" speed="0.9" color="white"></l-spiral>
+          </div>
+        ) : (
+          <p
+            onClick={handleRadarClick}
+            style={{
+              boxShadow: "inset 0 0 30px #48435C",
+              color: "#48435C",
+              fontSize: 15,
+              fontFamily: "Times New Roman",
+              minWidth: "95px",
+              maxWidth: "95px",
+              height: "95px",
+              borderRadius: "50%",
+              textAlign: "center",
+              transform: `rotate(${-alpha}deg)`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {iconHandler()}
+          </p>
+        )}
         <div className="pulseLoader"></div>
       </div>
     </div>
