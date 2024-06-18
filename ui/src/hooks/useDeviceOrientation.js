@@ -60,7 +60,7 @@ const useDeviceOrientation = () => {
     // Register service worker if supported
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
-        .register("service-worker.js", { scope: "." })
+        .register("/service-worker.js", { scope: "." })
         .then(function (registration) {
           console.log(
             "Service Worker registered with scope:",

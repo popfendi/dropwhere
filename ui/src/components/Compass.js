@@ -1,5 +1,5 @@
 import React from "react";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import useDeviceOrientation from "../hooks/useDeviceOrientation";
 import useGeolocation from "../hooks/useGeolocation";
 import MessageRenderer from "./MessageRenderer";
@@ -21,7 +21,6 @@ const Compass = (props) => {
   const [isClose, setIsClose] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const syncTime = useRef(Date.now());
   const alert = useAlert();
   const account = useAccount();
 
@@ -49,24 +48,16 @@ const Compass = (props) => {
             return;
           }
           setDeltas(data);
-          syncTime.current = Date.now();
         } catch (error) {
           console.error("Error fetching deltas:", error);
         }
       }
     };
 
-    const intervalId = setInterval(fetchDeltas, 1000);
+    const intervalId = setInterval(fetchDeltas, 2500);
 
     return () => clearInterval(intervalId);
   }, [position.latitude, position.longitude]);
-
-  const calculateAnimationDelay = () => {
-    const currentTime = Date.now();
-    const elapsed = currentTime - syncTime.current;
-    const progress = (elapsed % 5000) / 5000;
-    return `-${progress * 5}s`;
-  };
 
   const compassStyle = {
     transform: `rotate(${alpha}deg)`,
@@ -208,23 +199,14 @@ const Compass = (props) => {
     if (delta.proximity === "<100m" || delta.proximity === "<10m") {
       return null;
     } else {
-      const animationDelay = calculateAnimationDelay();
-      const style =
-        delta.type === "message" ? messageStyle(delta) : prizeStyle(delta);
-      return (
-        <div
-          className="radar-icon"
-          key={delta.id}
-          style={{ ...style, animationDelay }}
-        >
-          <div
-            style={
-              delta.type === "message"
-                ? messageTextStyle(delta.direction)
-                : prizeTextStyle(delta.direction)
-            }
-          >
-            {delta.type === "message" ? "✉️" : delta[props.display]}
+      return delta.type === "message" ? (
+        <div className="radar-icon" key={delta.id} style={messageStyle(delta)}>
+          <div style={messageTextStyle(delta.direction)}>✉️</div>
+        </div>
+      ) : (
+        <div className="radar-icon" key={delta.id} style={prizeStyle(delta)}>
+          <div style={prizeTextStyle(delta.direction)}>
+            {delta[props.display]}
           </div>
         </div>
       );

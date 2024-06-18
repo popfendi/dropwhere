@@ -89,7 +89,8 @@ body {
 }
 
 .radar-icon {
-  animation: pulse 5s ease-in-out 0s infinite;
+  animation: pulse 2.5s ease-in-out 0s infinite;
+  will-change: opacity;
 }
 
 @keyframes pulse {
@@ -123,6 +124,7 @@ body {
   position: absolute;
   pointer-events: none;
   z-index: -999;
+  will-change: opacity, scale;
 }
 
 @keyframes pulseanim {
