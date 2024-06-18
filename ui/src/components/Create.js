@@ -290,7 +290,7 @@ const Create = () => {
       const uuid = v4();
       const pw = keccak256(toHex(uuid)); // not the hashed pw, just to ensure always bytes32
       const hashedPw = keccak256(
-        encodePacked(["address", "bytes32"], [userAddress, pw]),
+        encodePacked(["bytes32", "address"], [pw, userAddress]),
       );
 
       const apiRes = await fetch(`${config.pathfinderURL}${config.dropPath}`, {
@@ -421,7 +421,7 @@ const Create = () => {
       const uuid = v4();
       const pw = keccak256(toHex(uuid)); // not the hashed pw, just to ensure always bytes32
       const hashedPw = keccak256(
-        encodePacked(["address", "bytes32"], [userAddress, pw]),
+        encodePacked(["bytes32", "address"], [pw, userAddress]),
       );
 
       const apiRes = await fetch(`${config.pathfinderURL}${config.dropPath}`, {
@@ -480,21 +480,6 @@ const Create = () => {
   };
 
   const handleEthDrop = async () => {
-    /*
-    FLOW:
-    check formatting of inputs
-    get user nonce
-    hash user&nonce to get ID
-    generate PW
-    hash PW
-
-    post to API (active=false)
-    ensure successful response
-
-    send add drop TX
-
-    will be activated on back end.
-    */
     const userAddress = await account.address;
 
     if (userAddress == null || userAddress == undefined) {
@@ -540,7 +525,7 @@ const Create = () => {
       const uuid = v4();
       const pw = keccak256(toHex(uuid)); // not the hashed pw, just to ensure always bytes32
       const hashedPw = keccak256(
-        encodePacked(["address", "bytes32"], [userAddress, pw]),
+        encodePacked(["bytes32", "address"], [pw, userAddress]),
       );
 
       const apiRes = await fetch(`${config.pathfinderURL}${config.dropPath}`, {
