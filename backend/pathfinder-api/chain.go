@@ -46,10 +46,8 @@ func listenForLocks() {
 		case err := <-sub.Err():
 			if err != nil {
 				Sugar.Error(err)
-				if os.IsTimeout(err) {
-					sub.Unsubscribe()
-					listenForLocks()
-				}
+				sub.Unsubscribe()
+				listenForLocks()
 			}
 		case log := <-sink:
 			sender := strings.ToLower(log.Sender.Hex())
@@ -77,10 +75,8 @@ func listenForUnlocks() {
 		case err := <-sub.Err():
 			if err != nil {
 				Sugar.Error(err)
-				if os.IsTimeout(err) {
-					sub.Unsubscribe()
-					listenForLocks()
-				}
+				sub.Unsubscribe()
+				listenForLocks()
 			}
 		case log := <-sink:
 			sender := strings.ToLower(log.Sender.Hex())

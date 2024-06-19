@@ -115,6 +115,7 @@ type Delta struct {
     Name            string      `json:"name,omitempty"`
     Symbol          string      `json:"symbol,omitempty"`
     Amount          *big.Int    `json:"amount,omitempty"`
+    Text            []int16     `json:"text,omitempty"`
 } 
 
 type UserLocation struct {
@@ -215,6 +216,7 @@ func filterMessages(userLocation UserLocation, messages []Message) []Delta{
             Proximity: proximity,
             Type: "message",
             ContractAddress: message.Sender,
+            Text: message.Text,
         })
 
     }
