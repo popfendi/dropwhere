@@ -27,6 +27,7 @@ const Compass = (props) => {
   useEffect(() => {
     const fetchDeltas = async () => {
       if (position.latitude && position.longitude) {
+        //alert.show("making request");
         try {
           const response = await fetch(
             `${config.pathfinderURL}${config.deltaPath}`,
