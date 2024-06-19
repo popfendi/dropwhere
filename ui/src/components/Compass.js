@@ -1,6 +1,5 @@
 import React from "react";
 import { useEffect, useState } from "react";
-import useDeviceOrientation from "../hooks/useDeviceOrientation";
 import useGeolocation from "../hooks/useGeolocation";
 import MessageRenderer from "./MessageRenderer";
 import { useAccount } from "wagmi";
@@ -10,19 +9,125 @@ import { dropManagerABI } from "../abi/dropManager";
 import { useAlert } from "react-alert";
 import { config } from "../config";
 import { spiral } from "ldrs";
+import { isIOS } from "react-device-detect";
 
 spiral.register();
 
 const Compass = (props) => {
-  const { alpha, dir } = useDeviceOrientation();
+  const [alpha, setAlpha] = useState(0);
+  const [dir, setDir] = useState("");
   const { position, error } = useGeolocation();
   const [deltas, setDeltas] = useState([]);
   const [veryCloseDeltas, setVeryCloseDeltas] = useState([]);
   const [isClose, setIsClose] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [iphonePermission, setIphonePermission] = useState(null);
 
   const alert = useAlert();
   const account = useAccount();
+
+  useEffect(() => {
+    //implimentation yoinked from: https://onlinecompass.app/ <-cheers m8
+
+    const requestPermission = async () => {
+      try {
+        if (
+          typeof DeviceOrientationEvent.requestPermission === "function" &&
+          navigator.userAgent.includes("iPhone")
+        ) {
+          await DeviceOrientationEvent.requestPermission().then((response) => {
+            if (response === "granted") {
+              window.addEventListener("deviceorientation", manageCompass);
+            } else {
+              alert("Permission denied for accessing device orientation");
+            }
+          });
+        } else {
+          window.addEventListener("deviceorientation", manageCompass);
+        }
+      } catch (error) {
+        alert("Error while requesting device orientation permission", error);
+      }
+      setIphonePermission(null);
+    };
+
+    // Manage compass data
+    function manageCompass(event) {
+      let absoluteHeading;
+      if (event.webkitCompassHeading) {
+        absoluteHeading = event.webkitCompassHeading - 180;
+      } else {
+        absoluteHeading = 180 + event.alpha;
+      }
+      absoluteHeading = (absoluteHeading - 180) % 360;
+      if (absoluteHeading > 360) {
+        absoluteHeading -= 360;
+      }
+
+      if (isIOS) {
+        absoluteHeading = -absoluteHeading;
+      }
+
+      setAlpha(absoluteHeading);
+      setDir(disha(absoluteHeading));
+    }
+
+    // Determine the cardinal direction based on the angle
+    function disha(angle) {
+      if (angle >= 22.5 && angle < 67.5) return "NW";
+      if (angle >= 67.5 && angle < 112.5) return "W";
+      if (angle >= 112.5 && angle < 157.5) return "SW";
+      if (angle >= 157.5 && angle < 202.5) return "S";
+      if (angle >= 202.5 && angle < 247.5) return "SE";
+      if (angle >= 247.5 && angle < 292.5) return "E";
+      if (angle >= 292.5 && angle < 337.5) return "NE";
+      return "N";
+    }
+
+    // Add event listener based on device type
+    if (isIOS) {
+      setIphonePermission(
+        <>
+          <button
+            style={{
+              height: "93px",
+              width: "93px",
+              backgroundColor: "#9792E3",
+              margin: 0,
+              padding: 0,
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "24px",
+              fontWeight: "bold",
+              zIndex: 99999,
+            }}
+            onClick={requestPermission}
+          >
+            start
+          </button>
+        </>,
+      );
+    } else {
+      window.addEventListener("deviceorientationabsolute", manageCompass, true);
+    }
+
+    // Register service worker if supported
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("/service-worker.js", { scope: "." })
+        .then(function (registration) {
+          console.log(
+            "Service Worker registered with scope:",
+            registration.scope,
+          );
+        })
+        .catch(function (error) {
+          console.error("Service Worker registration failed:", error);
+        });
+    }
+  }, []);
 
   useEffect(() => {
     const fetchDeltas = async () => {
@@ -350,47 +455,50 @@ const Compass = (props) => {
         height: "95vh",
       }}
     >
-      <div className="radar-container" style={compassStyle}>
-        <div className="radar-div">{mapDeltas}</div>
-        {loading ? (
-          <div
-            style={{
-              boxShadow: "inset 0 0 30px #48435C",
-              borderRadius: "50%",
-              minWidth: "95px",
-              maxWidth: "95px",
-              height: "95px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <l-spiral size="40" speed="0.9" color="white"></l-spiral>
-          </div>
-        ) : (
-          <p
-            onClick={handleRadarClick}
-            style={{
-              boxShadow: "inset 0 0 30px #48435C",
-              color: "#48435C",
-              fontSize: 15,
-              fontFamily: "Times New Roman",
-              minWidth: "95px",
-              maxWidth: "95px",
-              height: "95px",
-              borderRadius: "50%",
-              textAlign: "center",
-              transform: `rotate(${-alpha}deg)`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            {iconHandler()}
-          </p>
-        )}
-        <div className="pulseLoader"></div>
-      </div>
+      {iphonePermission}
+      {iphonePermission == null ? (
+        <div className="radar-container" style={compassStyle}>
+          <div className="radar-div">{mapDeltas}</div>
+          {loading ? (
+            <div
+              style={{
+                boxShadow: "inset 0 0 30px #48435C",
+                borderRadius: "50%",
+                minWidth: "95px",
+                maxWidth: "95px",
+                height: "95px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <l-spiral size="40" speed="0.9" color="white"></l-spiral>
+            </div>
+          ) : (
+            <p
+              onClick={handleRadarClick}
+              style={{
+                boxShadow: "inset 0 0 30px #48435C",
+                color: "#48435C",
+                fontSize: 15,
+                fontFamily: "Times New Roman",
+                minWidth: "95px",
+                maxWidth: "95px",
+                height: "95px",
+                borderRadius: "50%",
+                textAlign: "center",
+                transform: `rotate(${-alpha}deg)`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {iconHandler()}
+            </p>
+          )}
+          <div className="pulseLoader"></div>
+        </div>
+      ) : null}
     </div>
   );
 };

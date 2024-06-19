@@ -46,6 +46,7 @@ body {
   border-radius: 10px;
   cursor: pointer;
   text-align: center;
+  color: black;
 }
 
 .button-style:hover {
@@ -65,6 +66,7 @@ body {
   font-size: 20px;
   right: 25%;
   top: 30%;
+  padding: 0;
 }
 
 .overlay {

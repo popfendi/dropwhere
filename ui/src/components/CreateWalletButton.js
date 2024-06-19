@@ -19,6 +19,7 @@ const buttonStyles = {
   paddingRight: 30,
   borderRadius: 10,
   cursor: "pointer",
+  color: "black",
 };
 
 const sdk = new CoinbaseWalletSDK({
