@@ -101,7 +101,7 @@ const Compass = (props) => {
               justifyContent: "center",
               fontSize: "24px",
               fontWeight: "bold",
-              zIndex: 99999,
+              zIndex: 0,
             }}
             onClick={requestPermission}
           >
