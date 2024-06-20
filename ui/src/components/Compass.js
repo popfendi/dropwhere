@@ -452,7 +452,7 @@ const Compass = (props) => {
         flexDirection: "column",
         justifyContent: "center",
         alignItems: "center",
-        height: "95vh",
+        height: "90vh",
       }}
     >
       {iphonePermission}

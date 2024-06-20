@@ -9,6 +9,7 @@ import Modal from "react-modal";
 import { WagmiProvider } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { wagmiConfig } from "./WagmiConfig";
+import tg from "./tg.png";
 
 const displays = ["proximity", "type", "symbol"];
 
@@ -111,6 +112,11 @@ function App() {
             ) : (
               <Create />
             )}
+            <div className="footer">
+              <a href="https://t.me/dropwhere" target="_blank">
+                <img src={tg} width={75} />
+              </a>
+            </div>
           </div>
         </QueryClientProvider>
       </WagmiProvider>
